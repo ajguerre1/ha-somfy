@@ -82,7 +82,6 @@ class _SomfyCoverBase(CoordinatorEntity[SomfyCoordinator], CoverEntity):
     def __init__(self, coordinator: SomfyCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator)
         self._entry = entry
-        self._moving_direction: str | None = None
         self._last_written: tuple[Any, ...] | None = None
 
     # -- capability --------------------------------------------------------
