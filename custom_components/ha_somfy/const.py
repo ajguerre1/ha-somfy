@@ -9,18 +9,10 @@ MANUFACTURER: Final = "Somfy"
 GATEWAY_MODEL: Final = "Connect UAI+"
 
 CONF_POLL_INTERVAL: Final = "poll_interval"
-CONF_ENABLE_GROUPS: Final = "enable_groups"
-CONF_CAPABILITY_OVERRIDES: Final = "capability_overrides"
 
 DEFAULT_POLL_INTERVAL: Final = 60
 MIN_POLL_INTERVAL: Final = 10
 MAX_POLL_INTERVAL: Final = 3600
-
-# While a motor is moving, poll it more often so the UI settles quickly. The
-# bus is fast (measured mean 0.03 s per request), so this is cheap -- but it
-# applies only to the motor actually moving, never the whole fleet.
-MOVING_POLL_INTERVAL: Final = 2
-MOVING_POLL_MAX_SECONDS: Final = 90
 
 # A node can miss a discovery pass and come back; one was observed absent from
 # a single ping and present in the four that followed. Entities must survive

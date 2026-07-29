@@ -3,7 +3,10 @@
 A Home Assistant integration for the **Somfy Connect UAI+** gateway, controlling Somfy SDN
 (RS-485) motorised blinds, shades and drapes.
 
-> **Status: in development.** Not yet installable. See [`docs/ai/planning/backlog.md`](docs/ai/planning/backlog.md).
+> **Status: pre-release.** Installable via HACS, but not yet validated against live hardware.
+> One known open question: position polarity is unconfirmed, so the open/closed direction may
+> be inverted until a motor is moved and observed. See
+> [`docs/ai/planning/backlog.md`](docs/ai/planning/backlog.md) (PROTO-08).
 
 ## Why this exists
 
@@ -39,6 +42,54 @@ verifies the answer, and builds each entity from what that node can actually do.
 | Gateway | Somfy Connect UAI+ (Converging Systems OEM firmware) |
 | Transport | JSON-RPC over telnet, TCP 23 |
 | Motors | Sonesse (position feedback) · Irismo via 1811129 bridge (open/close/stop only) |
+
+The gateway reports Irismo motors with the type string **`SDN Module`** — the word
+"Irismo" never appears on the wire, because the gateway names the bridge rather than the
+motor behind it. A classifier keyed on "irismo" matches none of them.
+
+## Installation
+
+**HACS (recommended)** — HACS → ⋮ → *Custom repositories* → add
+`https://github.com/ajguerre1/ha-somfy` as an **Integration**, then install *HA Somfy* and
+restart Home Assistant.
+
+**Manual** — copy `custom_components/ha_somfy/` into your Home Assistant `config/custom_components/`
+directory and restart.
+
+Then *Settings → Devices & Services → Add Integration → HA Somfy*, and enter the gateway's
+host and telnet credentials. Motors and groups are discovered automatically.
+
+## What you get
+
+- **One cover per group**, enabled by default — these are what day-to-day control uses.
+- **One cover per motor**, registered but **disabled by default**. Enable any of them from the
+  entity settings. They start disabled so a large installation does not add state-change
+  traffic you did not ask for.
+- **One device per motor**, showing its reported model, so Irismo units are identifiable at
+  a glance.
+- **Diagnostics** with credentials redacted, listing every node, its type, and the capability
+  derived from it.
+
+## Options
+
+*Poll interval* (default 60 s) controls how often position-capable motors are read. Motors
+without position feedback are never polled.
+
+## Development
+
+```bash
+pip install -r requirements-test.txt
+pytest tests/          # HA-dependent tests need Linux; see below
+ruff check . && ruff format --check .
+```
+
+Home Assistant cannot be imported on Windows (`homeassistant.runner` imports POSIX-only
+`fcntl`), so `tests/ha/` is skipped there automatically and runs in CI on Ubuntu. The
+vendored client under `custom_components/ha_somfy/uai/` has no Home Assistant imports and
+tests on any platform.
+
+`scripts/probe_uai.py` is a standalone, **query-only** inventory tool for the gateway. It
+cannot move a motor: an allowlist gates every outbound method, with a test proving it.
 
 ## Credits
 

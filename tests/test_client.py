@@ -29,6 +29,26 @@ from custom_components.ha_somfy.uai.models import Capability
 USER = "homeassistant"
 PASSWORD = "hunter2"
 
+try:  # pragma: no cover - depends on which extras are installed
+    from pytest_socket import enable_socket
+except ImportError:  # local runs without the Home Assistant harness
+    enable_socket = None
+
+
+@pytest.fixture(autouse=True)
+def _allow_loopback_socket() -> None:
+    """Re-enable sockets for this module.
+
+    pytest-homeassistant-custom-component pulls in pytest-socket, which blocks
+    all socket use so that unit tests cannot reach the network. These tests
+    deliberately open a loopback socket to a fake gateway running in-process --
+    that is the whole point, since mocking the connection would leave the
+    handshake and framing untested. Only this module is exempted.
+    """
+    if enable_socket is not None:
+        enable_socket()
+
+
 # Node IDs and type strings mirror the real bus.
 SONESSE_50 = "136EA5"
 SONESSE_30 = "07753E"  # the one that answers position with `false`

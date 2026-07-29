@@ -22,7 +22,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .const import DOMAIN, MAX_MISSED_DISCOVERIES
 from .uai.client import UaiClient, UaiError
-from .uai.models import Capability, GroupInfo, Node
+from .uai.models import Capability, GroupInfo, Node, group_index_for_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -99,8 +99,6 @@ class SomfyCoordinator(DataUpdateCoordinator[dict[str, Node]]):
         The gateway's group list is only available over HTTP, so names are
         passed in when we have them and fall back to the group ID otherwise.
         """
-        from .uai.models import group_index_for_id
-
         members: dict[str, list[str]] = {}
         for node in self.nodes.values():
             for group_id in node.groups:

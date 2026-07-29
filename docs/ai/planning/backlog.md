@@ -114,6 +114,14 @@ Deliberately deferred — revisit only if the trade-off changes.
 | PROTO-04 | Group address = `"0101" + f"{index:02X}"`, index 1-based from `somfy_groups.json`. Group 1 `ALL` is a broadcast with no stored membership | 2026-07-29 | All 24 member-bearing groups matched by name, e.g. `010106`→`RoomG B/O`, `010119`→`RoomK SH` |
 | PROTO-05 | Bus is fast and reliable: 149 requests in 5.0 s, mean 0.03 s, **zero retries**. One transient single-node dropout observed → HW-02 | 2026-07-29 | `timings` in probe output; 6 discovery passes |
 | PROTO-06 | Sanitised fixtures committed; raw captures gitignored | 2026-07-29 | `tests/fixtures/*.json` committed; credential scan across all committable files came back clean |
+| CAP-01 | Classifier maps type string → capability, probing unknown types | 2026-07-29 | `tests/test_models.py`; replaying the real 49-node inventory splits exactly 40 positional / 9 non-positional with 0 unknown |
+| CAP-04 | `bool` rejected before any numeric position check | 2026-07-29 | `test_bool_is_never_a_position`; the probe's own version of this bug was found and fixed |
+| CAP-05 | Classifier matches `SDN Module`, not `irismo` | 2026-07-29 | `test_sdn_module_is_non_positional`; `irismo` retained only as a defensive alias |
+| CAP-06 | A `false` reading leaves capability untouched | 2026-07-29 | `test_the_false_position_node_keeps_its_capability` against real node `07753E` |
+| PERF-02 | Only position-capable motors are polled | 2026-07-29 | `SomfyCoordinator._async_update_data` skips non-positional nodes; the 9 Irismo generate no poll traffic |
+| PERF-04 | `iot_class` declared `local_polling` | 2026-07-29 | `manifest.json`; zero unsolicited notifications were seen in 149 probe requests |
+| GROUP-03 | Group 1 `ALL` omitted from discovery | 2026-07-29 | `UaiClient.async_get_groups` filters it; `test_discovery_skips_the_all_group` |
+| HW-02 | Transient node dropout tolerated | 2026-07-29 | `SomfyCoordinator.async_discover` requires 3 consecutive misses before dropping a node |
 
 ---
 
