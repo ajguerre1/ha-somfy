@@ -10,44 +10,53 @@ references to them.
 
 ## Status of the "new" column
 
-> ⚠️ **The new entity IDs below are PREDICTED, not observed.** They are derived from Home
-> Assistant's slugify applied to the gateway's group names. They must be re-verified against the
-> entity registry immediately after the config entry is created, before any dashboard is edited.
+**Verified against the live entity registry on 2026-07-29**, after installing v0.1.2 and creating
+the config entry. These are observed IDs, not predictions.
 
-**Collision check (verified 2026-07-29):** none of the 24 predicted IDs currently exists in the
-entity registry, so Home Assistant will *not* append `_2` suffixes and no existing entity needs
-renaming. This was the concern that prompted the earlier purge proposal; it turns out not to apply.
+> The earlier version of this table predicted `cover.roomb_sh`. **That was wrong.** Home Assistant
+> prefixes the entity ID with the device name, and the group entities belong to the gateway device
+> "Somfy UAI+", so every ID gained a `somfy_uai_` prefix. This is exactly why MIGRATE-01 required
+> re-verification before any dashboard was touched.
+
+No collisions occurred and no `_2` suffixes were appended.
 
 ## The mapping
 
 Group ID is `"0101" + hex(index)`; index is the 1-based key in `GET /somfy_groups.json`.
 
-| # | Old entity (Homebridge) | Gateway group | Group ID | New entity (predicted) | Motors | Position? |
+| # | Old entity (Homebridge) | Gateway group | Group ID | New entity (**observed**) | Motors | Position? |
 |---|---|---|---|---|---|---|
-| 1 | `cover.rooma_bed_blackouts` | RoomA B/O | `010102` | `cover.rooma_b_o` | 3 | yes |
-| 2 | `cover.rooma_bed_shades` | RoomA SH | `010103` | `cover.rooma_sh` | 2 | yes |
-| 3 | `cover.roomb_blackouts` | RoomB B/O | `010104` | `cover.roomb_b_o` | 2 ⚠️ | yes |
-| 4 | `cover.roomb_shades` | RoomB SH | `010105` | `cover.roomb_sh` | 4 | yes |
-| 5 | `cover.roomg_living_blackouts` | RoomG B/O | `010106` | `cover.roomg_b_o` | 4 | yes |
-| 6 | `cover.roomg_living_drapes` | RoomG SH | `010107` | `cover.roomg_sh` | 2 | **NO** |
-| 7 | `cover.roomh_shades` | RoomH SH | `010108` | `cover.roomh_sh` | 2 | yes |
-| 8 | `cover.roomi_blackouts` | RoomI B/O | `010109` | `cover.roomi_b_o` | 3 | **NO** |
-| 9 | `cover.roomi_drapes` | RoomI SH | `01010A` | `cover.roomi_sh` | 3 | **NO** |
-| 10 | `cover.roomj_blackouts` | RoomJ B/O | `01010B` | `cover.roomj_b_o` | 2 | yes |
-| 11 | `cover.roomj_shades` | RoomJ SH | `01010C` | `cover.roomj_sh` | 2 | yes |
-| 12 | `cover.rooml_bed_blackouts` | RoomL B/O | `01010D` | `cover.rooml_b_o` | 3 | yes |
-| 13 | `cover.rooml_bed_shades` | RoomL SH | `01010E` | `cover.rooml_sh` | 3 | yes |
-| 14 | `cover.roomm_blackouts` | RoomM B/O | `01010F` | `cover.roomm_b_o` | 2 | yes |
-| 15 | `cover.roomm_shades` | RoomM SH | `010110` | `cover.roomm_sh` | 2 | yes |
-| 16 | `cover.roomc_blackout` | RoomC B/O | `010111` | `cover.roomc_b_o` | 1 | yes |
-| 17 | `cover.roomd_hallway_drapes` | RoomD SH | `010112` | `cover.roomd_sh` | 1 | **NO** |
-| 18 | `cover.roome_bath_shade` | RoomE Bath SH | `010113` | `cover.roome_bath_sh` | 1 | yes |
-| 19 | `cover.roome_bed_blackout` | RoomE Bed B/O | `010114` | `cover.roome_bed_b_o` | 1 | yes |
-| 20 | `cover.roome_bed_shade` | RoomE Bed SH | `010115` | `cover.roome_bed_sh` | 1 | yes |
-| 21 | `cover.roomf_bath_shade` | RoomF Bath SH | `010116` | `cover.roomf_bath_sh` | 1 | yes |
-| 22 | `cover.roomf_bed_blackout` | RoomF Bed B/O | `010117` | `cover.roomf_bed_b_o` | 1 | yes |
-| 23 | `cover.roomf_bed_shade` | RoomF Bed SH | `010118` | `cover.roomf_bed_sh` | 1 | yes |
-| 24 | `cover.roomk_shade` | RoomK SH | `010119` | `cover.roomk_sh` | 1 | yes |
+| 1 | `cover.rooma_bed_blackouts` | RoomA B/O | `010102` | `cover.somfy_uai_rooma_b_o` | 3 | yes |
+| 2 | `cover.rooma_bed_shades` | RoomA SH | `010103` | `cover.somfy_uai_rooma_sh` | 2 | yes |
+| 3 | `cover.roomb_blackouts` | RoomB B/O | `010104` | `cover.somfy_uai_roomb_b_o` | 2 ⚠️ | yes |
+| 4 | `cover.roomb_shades` | RoomB SH | `010105` | `cover.somfy_uai_roomb_sh` | 4 | yes |
+| 5 | `cover.roomg_living_blackouts` | RoomG B/O | `010106` | `cover.somfy_uai_roomg_b_o` | 4 | yes |
+| 6 | `cover.roomg_living_drapes` | RoomG SH | `010107` | `cover.somfy_uai_roomg_sh` | 2 | **NO** |
+| 7 | `cover.roomh_shades` | RoomH SH | `010108` | `cover.somfy_uai_roomh_sh` | 2 | yes |
+| 8 | `cover.roomi_blackouts` | RoomI B/O | `010109` | `cover.somfy_uai_roomi_b_o` | 3 | **NO** |
+| 9 | `cover.roomi_drapes` | RoomI SH | `01010A` | `cover.somfy_uai_roomi_sh` | 3 | **NO** |
+| 10 | `cover.roomj_blackouts` | RoomJ B/O | `01010B` | `cover.somfy_uai_roomj_b_o` | 2 | yes |
+| 11 | `cover.roomj_shades` | RoomJ SH | `01010C` | `cover.somfy_uai_roomj_sh` | 2 | yes |
+| 12 | `cover.rooml_bed_blackouts` | RoomL B/O | `01010D` | `cover.somfy_uai_rooml_b_o` | 3 | yes |
+| 13 | `cover.rooml_bed_shades` | RoomL SH | `01010E` | `cover.somfy_uai_rooml_sh` | 3 | yes |
+| 14 | `cover.roomm_blackouts` | RoomM B/O | `01010F` | `cover.somfy_uai_roomm_b_o` | 2 | yes |
+| 15 | `cover.roomm_shades` | RoomM SH | `010110` | `cover.somfy_uai_roomm_sh` | 2 | yes |
+| 16 | `cover.roomc_blackout` | RoomC B/O | `010111` | `cover.somfy_uai_roomc_b_o` | 1 | yes |
+| 17 | `cover.roomd_hallway_drapes` | RoomD SH | `010112` | `cover.somfy_uai_roomd_sh` | 1 | **NO** |
+| 18 | `cover.roome_bath_shade` | RoomE Bath SH | `010113` | `cover.somfy_uai_roome_bath_sh` | 1 | yes |
+| 19 | `cover.roome_bed_blackout` | RoomE Bed B/O | `010114` | `cover.somfy_uai_roome_bed_b_o` | 1 | yes |
+| 20 | `cover.roome_bed_shade` | RoomE Bed SH | `010115` | `cover.somfy_uai_roome_bed_sh` | 1 | yes |
+| 21 | `cover.roomf_bath_shade` | RoomF Bath SH | `010116` | `cover.somfy_uai_roomf_bath_sh` | 1 | yes |
+| 22 | `cover.roomf_bed_blackout` | RoomF Bed B/O | `010117` | `cover.somfy_uai_roomf_bed_b_o` | 1 | yes |
+| 23 | `cover.roomf_bed_shade` | RoomF Bed SH | `010118` | `cover.somfy_uai_roomf_bed_sh` | 1 | yes |
+| 24 | `cover.roomk_shade` | RoomK SH | `010119` | `cover.somfy_uai_roomk_sh` | 1 | yes |
+
+Every member count above was confirmed against the live entities and matches the Phase 1 probe.
+The four **NO** rows report `supported_features: 11` and `assumed_state: true`; every other row
+reports `15`.
+
+**Also observed:** all 24 landed in the `it_equipment` area, inherited from the gateway device.
+Reassigning them to their real rooms is a separate, purely cosmetic task.
 
 Group 1 (`ALL`, `010101`) is a broadcast with no stored membership and is deliberately not exposed.
 
