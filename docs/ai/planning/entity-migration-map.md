@@ -71,20 +71,24 @@ currently a no-op dressed up as a control. Those calls need replacing with
 - `cover.roomi_drapes`
 - `cover.roomd_hallway_drapes`
 
-### 2. One motor is not in any group
+### 2. One motor is out of service by design
 
-`077537` — **"RoomB B/O 3"**, a Sonesse 30 — belongs to **no group**. The `RoomB B/O` group has
-only 2 members (`077526`, `07752C`) but three RoomB blackout motors exist on the bus.
+`077537` — **"RoomB B/O 3"**, a Sonesse 30 — belongs to **no group**, so `cover.roomb_b_o` drives
+**2 of 3** RoomB blackout motors (`077526`, `07752C`).
 
-So `cover.roomb_b_o` will move **2 of 3** RoomB blackout motors. Whatever
-`cover.roomb_blackouts` does today via Homebridge, the group route cannot reach the third.
+**This is intentional and needs no action.** The owner physically disconnected it pending repair
+and removed it from the group. It will be added back once fixed.
 
-This is the same node that missed one discovery pass earlier, which suggests it may be only
-partly commissioned.
+Everything the probe saw is consistent with that: it replies `false` to position queries, and it
+missed one discovery pass. Its SDN electronics still answer, which is why it appears in discovery
+at all.
 
-**Options:** add it to the `RoomB B/O` group in the UAI+ web UI (preferred — one change, and the
-group then behaves as its name implies), or enable its individual motor entity and drive it
-alongside the group.
+**When the motor is repaired:** add it back to `RoomB B/O` in the UAI+ web UI, then reload the
+integration. Discovery picks up the new membership and `cover.roomb_b_o` covers all three. No code
+change required.
+
+Until then it exists only as a motor entity, which is disabled by default — so it will not appear
+in the UI or generate any traffic.
 
 ## Migration procedure
 
