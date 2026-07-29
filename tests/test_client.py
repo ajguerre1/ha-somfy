@@ -284,6 +284,57 @@ async def test_discovery_assigns_capability_from_type(client: UaiClient) -> None
     assert by_id[IRISMO].capability is Capability.NON_POSITIONAL
 
 
+async def test_discovery_uses_the_second_name_read(gateway: FakeGateway) -> None:
+    """The gateway's first info reply can be a group-derived placeholder.
+
+    On the reference bus every Irismo node first answered with its group's name
+    plus a position index ("RoomI SH 1"), and only a second read returned
+    the device's real label ("RoomI SH 1"). Entity IDs come from the name
+    and are assigned once, so taking the first answer would bake in a wrong ID.
+    """
+    reads: dict[str, int] = {}
+
+    def responder(method: str, params: dict, msg_id: int) -> str:
+        if method == "sdn.status.ping":
+            return json.dumps({"result": [SONESSE_50], "id": msg_id})
+        if method == "sdn.status.info":
+            target = params["targetID"]
+            reads[target] = reads.get(target, 0) + 1
+            # First read: group-derived placeholder. Second: the real label.
+            name = "RoomI SH 1" if reads[target] == 1 else "RoomI SH 1"
+            return json.dumps({"result": {"name": name, "type": "Sonesse 50DC"}, "id": msg_id})
+        if method == "sdn.status.position":
+            return json.dumps({"result": 0, "id": msg_id})
+        return json.dumps({"result": [], "id": msg_id})
+
+    gateway.responder = responder
+    c = UaiClient("127.0.0.1", gateway.port, USER, PASSWORD)
+    await c.async_connect()
+    try:
+        nodes = await c.async_discover_nodes()
+    finally:
+        await c.async_disconnect()
+
+    assert nodes[0].name == "RoomI SH 1"
+    assert reads[SONESSE_50] == 2
+
+
+async def test_http_label_overrides_the_telnet_name(client: UaiClient) -> None:
+    """The gateway's HTTP label was authoritative on every node it served."""
+    nodes = await client.async_discover_nodes({SONESSE_50: "RoomE Bed Blackout"})
+    by_id = {n.node_id: n for n in nodes}
+    assert by_id[SONESSE_50].name == "RoomE Bed Blackout"
+    # Nodes the override does not cover keep their settled telnet name.
+    assert by_id[IRISMO].name == "RoomI SH 1"
+
+
+async def test_blank_override_does_not_erase_a_name(client: UaiClient) -> None:
+    """A missing or empty HTTP label must not blank out a working name."""
+    nodes = await client.async_discover_nodes({SONESSE_50: ""})
+    by_id = {n.node_id: n for n in nodes}
+    assert by_id[SONESSE_50].name == "RoomE Bed B/O"
+
+
 async def test_discovery_does_not_demote_a_motor_that_replied_false(
     client: UaiClient,
 ) -> None:

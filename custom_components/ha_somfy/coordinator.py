@@ -48,15 +48,22 @@ class SomfyCoordinator(DataUpdateCoordinator[dict[str, Node]]):
         self.nodes: dict[str, Node] = {}
         self.groups: dict[str, GroupInfo] = {}
 
-    async def async_discover(self, group_names: dict[int, str] | None = None) -> None:
+    async def async_discover(
+        self,
+        group_names: dict[int, str] | None = None,
+        name_overrides: dict[str, str] | None = None,
+    ) -> None:
         """Enumerate the bus and build the node and group topology.
 
         Discovery is treated as a union over time rather than a snapshot: nodes
         occasionally miss a pass, and dropping an entity because of one missed
         reply would make blinds flicker to unavailable for no reason.
+
+        `name_overrides` carries authoritative labels read over HTTP; see
+        `UaiClient.async_get_info_settled` for why telnet alone is not enough.
         """
         try:
-            discovered = await self.client.async_discover_nodes()
+            discovered = await self.client.async_discover_nodes(name_overrides)
         except UaiError as err:
             raise UpdateFailed(f"discovery failed: {err}") from err
 

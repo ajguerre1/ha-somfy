@@ -155,8 +155,49 @@ The gateway exposes a node's label two ways, and on 2026-07-29 they disagreed:
 | Telnet `sdn.status.info` → `name`, re-read ~2 h later | `RoomA SH 2` |
 | Web UI (owner) | `RoomA SH 2` |
 
-Whether the 14:04 telnet reply was stale or the label was changed in between is
-not established. What matters is the lesson:
+### The mechanism: a group-derived placeholder on first read
+
+The owner spotted the pattern: the telnet values looked like *group* names while the
+HTTP values looked like *motor* labels. Testing confirmed it.
+
+**`sdn.status.info` answers for a `groupID` as well as a `targetID`** — the same call
+serves both, returning `{"name": ...}` with no `type` field for a group:
+
+```
+--> {"method":"sdn.status.info","params":[{"groupID":"01010A"}],"id":1001}
+<-- {"result":{"name":"RoomI SH"},"id":1001}
+```
+
+And on a first read, every one of the 7 SDN Module nodes returned its **group's name
+plus its position in that group**:
+
+| Node | First read | Second read | HTTP `LABEL` | Group name |
+|---|---|---|---|---|
+| `40FD76` | `RoomI SH 1` | `RoomI SH 1` | `RoomI SH 1` | `RoomI SH` |
+| `40FD75` | `RoomI SH 3` | `RoomI SH 3` | `RoomI SH 3` | `RoomI SH` |
+| `40FCFC` | `RoomD SH` | `RoomD Hall SH` | `RoomD Hall SH` | `RoomD SH` (sole member, no index) |
+
+So **when the gateway has not yet read a node's own label, it answers with a name
+synthesised from group membership. The query itself triggers the real read, and
+subsequent calls return the true label.** Only Irismo nodes were affected, presumably
+because the SDN bridge is slower to yield its label than a Sonesse.
+
+`136E33` does **not** fit this: it returned `RoomA B/O 2` while in the `RoomA SH`
+group, so group synthesis would have produced the *correct* answer. That one looks like
+a genuinely stale prior label rather than a placeholder. Two mechanisms may be at work;
+the available data cannot separate them.
+
+### Why this is load-bearing
+
+Entity IDs derive from the name and are assigned **once**. A placeholder captured at
+first discovery becomes a permanently wrong entity ID.
+
+**Resolution used:** read each node's info twice at discovery and prefer the gateway's
+HTTP `LABEL` where available. Verified live — 49 nodes, 0 unnamed, 46 from HTTP and 3
+from the second telnet read, including one node HTTP never served in any run. Neither
+source alone is sufficient.
+
+### The lesson from how this was missed
 
 **Group membership was the signal that caught it.** At 14:04 the same node reported
 group `010103` — `RoomA SH` — while its name said `B/O`. That contradiction sat in
