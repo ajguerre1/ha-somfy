@@ -1,0 +1,29 @@
+# Nimbalyst local scratch (plans, session artifacts) — not part of the project history
+nimbalyst-local/
+
+# Claude Code local settings (machine-local permissions/overrides)
+.claude/settings.local.json
+
+# Probe output / captured protocol transcripts may contain gateway credentials.
+# Sanitised fixtures live in tests/fixtures/ and ARE committed; raw captures are not.
+scripts/output/
+*.raw.log
+secrets.yaml
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
