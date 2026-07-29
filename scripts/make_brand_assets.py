@@ -34,34 +34,36 @@ def _rounded_background(size: int) -> Image.Image:
 
 
 def _draw_blind(image: Image.Image, size: int) -> None:
-    """A partially lowered blind: head rail, four slats, hem rail."""
+    """A partially lowered blind: head rail, three slats, hem rail.
+
+    Deliberately chunky. HACS renders this at roughly 40px in its store list,
+    where thin bars with small gaps blur into a single smudge. Three thick
+    slats survive the downscale; four thin ones did not.
+    """
     draw = ImageDraw.Draw(image)
-    margin = size * 0.22
+    margin = size * 0.20
     width = size - 2 * margin
     left, right = margin, margin + width
 
-    head_top = size * 0.20
-    head_height = size * 0.055
-    draw.rounded_rectangle(
-        [(left, head_top), (right, head_top + head_height)],
-        radius=head_height / 2,
-        fill=RAIL,
-    )
+    rail_height = size * 0.075
+    slat_height = size * 0.075
+    gap = size * 0.05
+    hem_height = size * 0.09
 
-    slat_height = size * 0.045
-    gap = size * 0.035
-    y = head_top + head_height + gap
-    for _ in range(4):
+    y = size * 0.20
+    draw.rounded_rectangle([(left, y), (right, y + rail_height)], radius=rail_height / 2, fill=RAIL)
+    y += rail_height + gap
+
+    for _ in range(3):
         draw.rounded_rectangle(
             [(left, y), (right, y + slat_height)], radius=slat_height / 2, fill=SLAT
         )
         y += slat_height + gap
 
     # Hem rail, inset slightly so the blind reads as hanging free.
-    hem_height = size * 0.06
-    inset = width * 0.06
+    inset = width * 0.08
     draw.rounded_rectangle(
-        [(left + inset, y + gap * 0.4), (right - inset, y + gap * 0.4 + hem_height)],
+        [(left + inset, y), (right - inset, y + hem_height)],
         radius=hem_height / 2,
         fill=RAIL,
     )
@@ -73,23 +75,35 @@ def make_icon(size: int) -> Image.Image:
     return image
 
 
-def make_logo(width: int, height: int) -> Image.Image:
-    """Wordmark-free logo: the icon centred on a transparent wide canvas."""
-    image = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-    icon = make_icon(height)
-    image.paste(icon, ((width - height) // 2, 0), icon)
-    return image
+# No logo.png is produced. home-assistant/brands treats logo as optional and
+# falls back to the icon, and it rejects images with empty space at the edges.
+# A "logo" that is just the square icon centred on a wide transparent canvas is
+# all padding: it would be rejected, and it would add nothing over the fallback.
+
+
+def check_trimmed(path: Path) -> str:
+    """home-assistant/brands requires minimal empty space at the edges.
+
+    An untrimmed image is rejected there, so verify rather than assume: the
+    alpha bounding box must span the whole canvas.
+    """
+    with Image.open(path) as image:
+        bbox = image.convert("RGBA").getbbox()
+        if bbox == (0, 0, *image.size):
+            return "trimmed"
+        return f"NOT TRIMMED - content bbox {bbox} inside {image.size}"
 
 
 def main() -> int:
     BRAND_DIR.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
 
+    for stale in ("logo.png", "logo@2x.png"):
+        (BRAND_DIR / stale).unlink(missing_ok=True)
+
     for name, image in (
         ("icon.png", make_icon(256)),
         ("icon@2x.png", make_icon(512)),
-        ("logo.png", make_logo(512, 256)),
-        ("logo@2x.png", make_logo(1024, 512)),
     ):
         path = BRAND_DIR / name
         image.save(path, "PNG", optimize=True)
@@ -97,7 +111,8 @@ def main() -> int:
 
     for path in written:
         with Image.open(path) as check:
-            print(f"  {path.relative_to(REPO_ROOT)}  {check.size[0]}x{check.size[1]}")
+            size = f"{check.size[0]}x{check.size[1]}"
+        print(f"  {path.relative_to(REPO_ROOT)}  {size}  {check_trimmed(path)}")
     return 0
 
 
