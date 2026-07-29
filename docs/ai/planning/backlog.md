@@ -122,6 +122,18 @@ Deliberately deferred — revisit only if the trade-off changes.
 | PERF-04 | `iot_class` declared `local_polling` | 2026-07-29 | `manifest.json`; zero unsolicited notifications were seen in 149 probe requests |
 | GROUP-03 | Group 1 `ALL` omitted from discovery | 2026-07-29 | `UaiClient.async_get_groups` filters it; `test_discovery_skips_the_all_group` |
 | HW-02 | Transient node dropout tolerated | 2026-07-29 | `SomfyCoordinator.async_discover` requires 3 consecutive misses before dropping a node |
+| CAP-03 | `supported_features` never hardcoded | 2026-07-29 | CI: `test_irismo_does_not_advertise_set_position` and `test_sonesse_does_advertise_set_position` both pass |
+| GROUP-01 | Group cover entities, open/close/stop | 2026-07-29 | CI: `test_all_irismo_group_has_no_position_slider`, `test_all_sonesse_group_has_a_position_slider` |
+| GROUP-04 | Groups inherit least-capable member | 2026-07-29 | CI: `test_mixed_group_falls_back_to_least_capable` |
+| PERF-01 | Change-gated state writes | 2026-07-29 | CI: `test_state_is_written_only_when_something_changed` — 3 refreshes, 1 write |
+| HA-01 | Config flow authenticates for real | 2026-07-29 | CI: `test_bad_credentials_are_rejected` |
+| HA-02 | Config flow uses auto-discovery | 2026-07-29 | CI: `test_confirm_step_reports_the_capability_split`; no hand-typed motors anywhere |
+| HA-03 | Single-argument step handlers | 2026-07-29 | CI: `test_flow_completes_and_creates_an_entry` — the flow reaches CREATE_ENTRY |
+| HA-04 | `diagnostics.py` with credentials redacted | 2026-07-29 | `async_get_config_entry_diagnostics` redacts username and password |
+| HA-05 | One device per motor | 2026-07-29 | CI: `test_each_motor_is_its_own_device_showing_its_model` |
+| HACS-01 | HACS-native layout | 2026-07-29 | CI: HACS action reports **all 9 checks passed** (needed repo topics + brand assets) |
+| HACS-02 | CI: hassfest + HACS + ruff + pytest | 2026-07-29 | All four jobs green on `main`; **123 tests passed** |
+| HACS-04 | `requirements: []` maintained | 2026-07-29 | CI: hassfest passes with the client vendored and no external requirements |
 
 ---
 
@@ -142,4 +154,5 @@ Deliberately deferred — revisit only if the trade-off changes.
 | Date | Change |
 |------|--------|
 | 2026-07-29 | Created. Seeded with 30 items from the project plan and the live gateway reconnaissance (ports open, 25 group names read, `somfy_devices.json` 403, 1811129 confirmed on all 9 Irismo). |
+| 2026-07-29 | **Phases 2-5 complete, CI fully green** (123 tests, hassfest, HACS 9/9, ruff). Two failures only CI could catch: pytest-socket (pulled in by the HA harness) blocked the client tests' loopback socket, and HACS required repository topics plus brand assets. Remaining before release: PROTO-08 position polarity and WORK-01 orphan purge, both needing live hardware. |
 | 2026-07-29 | **Phase 1 gate passed.** PROTO-01..06 completed. Added PROTO-08/09, CAP-04/05/06, GROUP-03, HW-01/02/03, PERF-04. Key correction: the classifier must match **`SDN Module`**, not `irismo` — the planned substring list would have matched none of the 9 Irismo. Second correction: the bus is fast, not slow, so the cautious polling assumption in the plan was unnecessary. |
