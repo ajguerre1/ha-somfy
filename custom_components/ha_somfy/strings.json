@@ -1,0 +1,40 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to the Somfy UAI+",
+        "description": "Enter the address and telnet credentials of your Somfy Connect UAI+ gateway. Motors and groups are discovered automatically.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "username": "Username",
+          "password": "Password"
+        }
+      },
+      "confirm": {
+        "title": "Confirm discovered devices",
+        "description": "Found {motors} motor(s) on {host}: {positional} report position, {non_positional} are open/close/stop only (for example Irismo motors behind an SDN bridge). {groups} group(s) detected.\n\nMotor entities are created but disabled by default so they do not add state updates until you need them. Group entities are enabled."
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach the gateway. Check the host and port.",
+      "invalid_auth": "The gateway rejected those credentials.",
+      "no_motors": "Connected, but the gateway reported no motors.",
+      "unknown": "Unexpected error. Check the Home Assistant log."
+    },
+    "abort": {
+      "already_configured": "This gateway is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "HA Somfy options",
+        "description": "How often to poll motors that report position. Motors without position feedback are never polled.",
+        "data": {
+          "poll_interval": "Poll interval"
+        }
+      }
+    }
+  }
+}
