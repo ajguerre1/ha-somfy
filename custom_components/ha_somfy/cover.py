@@ -63,12 +63,15 @@ async def async_setup_entry(
         [(node.node_id, node.name) for node in coordinator.nodes.values()]
     )
 
+    # Groups first: their device_info is the gateway, which is the `via_device`
+    # parent of every motor. The gateway is also registered explicitly during
+    # setup, so this ordering is belt and braces rather than the only guard.
     entities: list[CoverEntity] = [
-        SomfyMotorCover(coordinator, entry, node, display_names[node.node_id])
-        for node in coordinator.nodes.values()
+        SomfyGroupCover(coordinator, entry, group) for group in coordinator.groups.values()
     ]
     entities.extend(
-        SomfyGroupCover(coordinator, entry, group) for group in coordinator.groups.values()
+        SomfyMotorCover(coordinator, entry, node, display_names[node.node_id])
+        for node in coordinator.nodes.values()
     )
 
     async_add_entities(entities)
