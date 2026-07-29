@@ -61,6 +61,26 @@ Confirmed by runtime shape detection. The bare-dict form used by `peter-dolkens/
 consecutive passes, while sibling `07752B` on the same run returned a valid number — so it is a
 property of that motor, not of the bus.
 
+### What `false` actually indicates: a physical-layer fault
+
+Exactly **two** of the 49 nodes reply `false`, and the owner independently identified both as
+physically faulty:
+
+| Node | Name | Status per owner |
+|---|---|---|
+| `077537` | RoomB B/O 3 | **Physically disconnected**, awaiting repair; removed from its group |
+| `07753E` | RoomB SH 2 | Known existing fault |
+
+All 38 healthy position-capable motors return a number. The correlation is 2 for 2 in both
+directions, which is strong evidence that **`{"result": false}` means the SDN electronics are
+answering but the motor itself is not reporting** — a disconnected or failed motor, rather than the
+"limits never set" explanation originally guessed.
+
+That makes `false` a genuinely useful diagnostic: a Sonesse persistently replying `false` is worth
+physically inspecting. It also confirms the design decision — capability must come from the type
+string, because a faulty motor is still a *position-capable* motor and must not be silently
+reclassified as an Irismo.
+
 > **Trap:** `bool` subclasses `int` in Python, so `isinstance(False, int)` is `True`. A naive
 > numeric check reads this as position 0. The probe had exactly this bug and reported 40 positional
 > nodes instead of 38. Any position parsing must reject `bool` explicitly before the numeric check.
@@ -115,7 +135,7 @@ several consecutive misses before considering a node gone.
 | # | Question | Why it matters | How to settle |
 |---|---|---|---|
 | Q1 | Does position 0 mean open or closed? | Inverts the whole cover UI. Somfy convention is 0=open/100=closed, opposite of HA's. Observed values are only ever 0 or 100, so the data cannot disambiguate. | Phase 6: move one motor and observe. **Do not assume.** |
-| Q2 | Is `RoomB SH 2` (`07753E`) faulty, or just missing limits? | Decides whether it is our bug or a service call. | Compare with a working Sonesse 30 in the UAI+ web UI. |
+| ~~Q2~~ | ~~Is `RoomB SH 2` faulty, or just missing limits?~~ | **Resolved 2026-07-29.** Both `false`-replying motors are physically faulty per the owner. `false` indicates a motor-side fault, not a configuration gap. See §3. | — |
 | Q3 | Do the two `RoomA B/O 2` nodes (`136E33`, `136E3F`) share a name intentionally? | Duplicate friendly names collide when generating entity IDs. | Ask; otherwise disambiguate by node ID. |
 
 ## 9. Consequences for the capability classifier
