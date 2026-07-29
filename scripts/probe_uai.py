@@ -21,13 +21,14 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import json
 import re
 import sys
 import time
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -70,9 +71,7 @@ def assert_read_only(method: str) -> None:
             "This probe must never move a motor."
         )
     if _FORBIDDEN_HINT.search(method):
-        raise UnsafeMethodError(
-            f"Refusing to send {method!r}: matches a mutating-verb pattern."
-        )
+        raise UnsafeMethodError(f"Refusing to send {method!r}: matches a mutating-verb pattern.")
 
 
 # --------------------------------------------------------------------------
@@ -100,7 +99,7 @@ class NodeReport:
         """
         if isinstance(self.position, bool):
             return False
-        return isinstance(self.position, (int, float))
+        return isinstance(self.position, int | float)
 
 
 class Transcript:
@@ -112,7 +111,7 @@ class Transcript:
 
     def add(self, direction: str, payload: str) -> None:
         safe = payload.replace(self._secret, "***REDACTED***") if self._secret else payload
-        stamp = datetime.now(timezone.utc).strftime("%H:%M:%S.%f")[:-3]
+        stamp = datetime.now(UTC).strftime("%H:%M:%S.%f")[:-3]
         self.lines.append(f"{stamp} {direction} {safe!r}")
 
 
@@ -205,7 +204,7 @@ class UaiProbe:
                 raise TimeoutError(f"no reply to {method} id={msg_id} within {timeout}s")
             try:
                 raw = await asyncio.wait_for(self._reader.readline(), timeout=remaining)
-            except asyncio.TimeoutError as exc:
+            except TimeoutError as exc:
                 self.timings.append((method, time.monotonic() - started))
                 raise TimeoutError(f"no reply to {method} id={msg_id}") from exc
             if not raw:
@@ -297,10 +296,8 @@ class UaiProbe:
     async def close(self) -> None:
         if self._writer is not None:
             self._writer.close()
-            try:
+            with contextlib.suppress(Exception):
                 await self._writer.wait_closed()
-            except Exception:  # noqa: BLE001 - closing best-effort
-                pass
 
 
 # --------------------------------------------------------------------------
@@ -395,7 +392,7 @@ async def main() -> int:
         return 2
 
     probe = UaiProbe(host, port, user, password, args.verbose)
-    started = datetime.now(timezone.utc)
+    started = datetime.now(UTC)
     print(f"Connecting to {host}:{port} ...")
 
     try:
@@ -437,7 +434,7 @@ async def main() -> int:
                     f"  [{index:>2}/{len(targets)}] {node_id}  "
                     f"{(report.name or '?'):<22} {(report.type_string or '?'):<20} {flag}{raw}"
                 )
-    except Exception as exc:  # noqa: BLE001 - surface anything to the operator
+    except Exception as exc:
         print(f"\nPROBE FAILED: {type(exc).__name__}: {exc}", file=sys.stderr)
         _write_outputs(probe, [], started, "failed")
         return 1
@@ -469,9 +466,7 @@ def _write_outputs(
         "host": probe.host,
         "params_shape": probe.params_shape,
         "node_count": len(reports),
-        "type_histogram": dict(
-            Counter((r.type_string or "<none>") for r in reports)
-        ),
+        "type_histogram": dict(Counter((r.type_string or "<none>") for r in reports)),
         "nodes": [
             {
                 "node_id": r.node_id,

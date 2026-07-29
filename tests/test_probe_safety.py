@@ -14,7 +14,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
-from probe_uai import UnsafeMethodError, assert_read_only  # noqa: E402
+from probe_uai import UnsafeMethodError, assert_read_only
 
 MUTATING_METHODS = [
     "sdn.move.up",
