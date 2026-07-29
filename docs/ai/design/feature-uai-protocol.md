@@ -141,7 +141,37 @@ several consecutive misses before considering a node gone.
 |---|---|---|---|
 | Q1 | Does position 0 mean open or closed? | Inverts the whole cover UI. Somfy convention is 0=open/100=closed, opposite of HA's. Observed values are only ever 0 or 100, so the data cannot disambiguate. | Phase 6: move one motor and observe. **Do not assume.** |
 | ~~Q2~~ | ~~Is `RoomB SH 2` faulty, or just missing limits?~~ | **Resolved 2026-07-29.** Both `false`-replying motors are physically faulty per the owner. `false` indicates a motor-side fault, not a configuration gap. See §3. | — |
-| Q3 | Do the two `RoomA B/O 2` nodes (`136E33`, `136E3F`) share a name intentionally? | Duplicate friendly names collide when generating entity IDs. | Ask; otherwise disambiguate by node ID. |
+| ~~Q3~~ | ~~Do `136E33` and `136E3F` share the name `RoomA B/O 2`?~~ | **Resolved 2026-07-29 — there is no duplicate.** `136E33` is `RoomA SH 2`. The 14:04 capture recorded `RoomA B/O 2` for it, but the gateway's HTTP `LABEL` and a later telnet read both say `RoomA SH 2`. See §10. | — |
+| Q4 | Can `sdn.status.info` return a stale `name`? | Entity names come from it. If it can go stale, names could be briefly wrong after a rename. | Watch for a repeat; the HTTP `LABEL` is the cross-check. |
+
+## 10. Two sources of truth for a node's name
+
+The gateway exposes a node's label two ways, and on 2026-07-29 they disagreed:
+
+| Source | `136E33` |
+|---|---|
+| Telnet `sdn.status.info` → `name`, captured 14:04 | `RoomA B/O 2` |
+| HTTP `GET /somfy_device.json?13.6E.33` → `LABEL` | `RoomA SH 2` |
+| Telnet `sdn.status.info` → `name`, re-read ~2 h later | `RoomA SH 2` |
+| Web UI (owner) | `RoomA SH 2` |
+
+Whether the 14:04 telnet reply was stale or the label was changed in between is
+not established. What matters is the lesson:
+
+**Group membership was the signal that caught it.** At 14:04 the same node reported
+group `010103` — `RoomA SH` — while its name said `B/O`. That contradiction sat in
+the capture and went unnoticed, and a false "duplicate name" finding was built on top
+of it. Membership is derived from the motor's own stored group addresses and proved the
+more reliable field.
+
+**Practical consequences:**
+
+- The HTTP `LABEL` endpoint is a useful cross-check, and unlike `/somfy_devices.json`
+  (403) the per-device `/somfy_device.json?<dotted-node>` form needs no auth.
+- A name that disagrees with its group's name is worth flagging rather than trusting.
+- Keep the entity-ID uniqueness guard regardless. It is now defensive rather than
+  responding to an observed collision, but nothing prevents an installer from
+  labelling two motors identically, and a collision would silently drop an entity.
 
 ## 9. Consequences for the capability classifier
 
