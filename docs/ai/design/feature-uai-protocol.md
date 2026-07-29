@@ -63,18 +63,23 @@ property of that motor, not of the bus.
 
 ### What `false` actually indicates: a physical-layer fault
 
-Exactly **two** of the 49 nodes reply `false`, and the owner independently identified both as
-physically faulty:
+Exactly **two** of the 49 nodes reply `false`, and the owner confirmed both are physically faulty:
 
-| Node | Name | Status per owner |
-|---|---|---|
-| `077537` | RoomB B/O 3 | **Physically disconnected**, awaiting repair; removed from its group |
-| `07753E` | RoomB SH 2 | Known existing fault |
+| Node | Name | Status per owner | Confirmed |
+|---|---|---|---|
+| `077537` | RoomB B/O 3 | **Physically disconnected**, awaiting repair; removed from its group | volunteered unprompted |
+| `07753E` | RoomB SH 2 | **Physically faulty / disconnected**, same class of fault | confirmed on direct question |
 
 All 38 healthy position-capable motors return a number. The correlation is 2 for 2 in both
 directions, which is strong evidence that **`{"result": false}` means the SDN electronics are
 answering but the motor itself is not reporting** — a disconnected or failed motor, rather than the
 "limits never set" explanation originally guessed.
+
+> **On the strength of this claim.** A first version of this section asserted both motors were
+> faulty on the basis of the owner ticking a "known issue, already aware" option — which
+> established awareness, not a cause. The physical fault on `07753E` was confirmed separately
+> afterwards. The conclusion stands, but the sample is two motors on one bus: treat `false` as a
+> strong hint to inspect the motor, not as proof of a fault.
 
 That makes `false` a genuinely useful diagnostic: a Sonesse persistently replying `false` is worth
 physically inspecting. It also confirms the design decision — capability must come from the type
