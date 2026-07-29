@@ -52,7 +52,10 @@ def _install_stub_parents() -> None:
 
 if not HA_AVAILABLE:
     _install_stub_parents()
-    # Skip the HA-dependent suite rather than failing it.
+    # Skip the HA-dependent suite rather than failing it. The directory itself
+    # must be ignored, not just its files: tests/ha/conftest.py imports Home
+    # Assistant and would be loaded during collection otherwise.
+    collect_ignore = ["ha"]
     collect_ignore_glob = ["ha/*"]
 
 
