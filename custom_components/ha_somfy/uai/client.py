@@ -306,12 +306,42 @@ class UaiClient:
             return []
         return [str(gid) for gid in response.result if str(gid).upper() != ALL_GROUP_ID.upper()]
 
-    async def async_discover_nodes(self) -> list[Node]:
-        """Enumerate the bus and work out what each node can do."""
+    async def async_get_info_settled(self, node_id: str) -> tuple[str | None, str | None] | None:
+        """Read a node's info twice and return the second answer.
+
+        The gateway answers the *first* `sdn.status.info` for a node with a
+        placeholder name derived from its group membership -- literally the
+        group's name plus the node's position in it -- when it has not yet read
+        the device's own label. The query itself triggers that read, so a second
+        call returns the true label.
+
+        Observed across all 7 SDN Module (Irismo) nodes on the reference bus:
+        first read gave "RoomI SH 1" and "RoomD SH", second gave
+        "RoomI SH 1" and "RoomD Hall SH", matching the gateway's web UI.
+
+        This matters only at discovery, but it matters permanently: entity IDs
+        are derived from the name and are assigned once.
+        """
+        first = await self.async_get_info(node_id)
+        second = await self.async_get_info(node_id)
+        return second if second is not None else first
+
+    async def async_discover_nodes(
+        self, name_overrides: dict[str, str] | None = None
+    ) -> list[Node]:
+        """Enumerate the bus and work out what each node can do.
+
+        `name_overrides` maps node ID to an authoritative label -- in practice
+        the gateway's own HTTP label, which was correct on every node it served
+        even when telnet was not. Nodes it does not cover fall back to the
+        settled telnet name.
+        """
+        overrides = name_overrides or {}
         nodes: list[Node] = []
         for node_id in await self.async_ping_all():
-            info = await self.async_get_info(node_id)
+            info = await self.async_get_info_settled(node_id)
             name, type_string = info if info else (None, None)
+            name = overrides.get(node_id) or name
 
             capability = classify_type(type_string)
             if capability is Capability.UNKNOWN:

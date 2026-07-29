@@ -27,6 +27,7 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [Platform.COVER]
 
 GROUP_NAMES_TIMEOUT = 10
+DEVICE_LABEL_TIMEOUT = 10
 
 
 async def async_fetch_group_names(hass: HomeAssistant, host: str) -> dict[int, str]:
@@ -65,6 +66,48 @@ async def async_fetch_group_names(hass: HomeAssistant, host: str) -> dict[int, s
     return names
 
 
+def _dotted(node_id: str) -> str:
+    """136E33 -> 13.6E.33, the node form the HTTP endpoint expects."""
+    return ".".join(node_id[index : index + 2] for index in range(0, len(node_id), 2))
+
+
+async def async_fetch_device_labels(
+    hass: HomeAssistant, host: str, node_ids: list[str]
+) -> dict[str, str]:
+    """Read authoritative motor labels from the gateway's web interface.
+
+    Telnet's first `sdn.status.info` for a node can return a placeholder derived
+    from its group, whereas this endpoint returned the true label for every node
+    it served. It does not cover every node, so callers must keep a fallback.
+
+    Discovery-time only, and entirely optional: any failure just means that node
+    keeps its telnet name.
+    """
+    session = async_get_clientsession(hass)
+    labels: dict[str, str] = {}
+
+    for node_id in node_ids:
+        url = f"http://{host}/somfy_device.json?{_dotted(node_id)}"
+        try:
+            async with session.get(
+                url, timeout=aiohttp.ClientTimeout(total=DEVICE_LABEL_TIMEOUT)
+            ) as response:
+                if response.status != 200:
+                    continue
+                payload = await response.json(content_type=None)
+        except (aiohttp.ClientError, TimeoutError, ValueError) as err:
+            _LOGGER.debug("No HTTP label for %s: %s", node_id, err)
+            continue
+
+        device = payload.get("DEVICE") if isinstance(payload, dict) else None
+        label = device.get("LABEL") if isinstance(device, dict) else None
+        if isinstance(label, str) and label.strip():
+            labels[node_id] = label.strip()
+
+    _LOGGER.debug("Read %d/%d motor labels over HTTP", len(labels), len(node_ids))
+    return labels
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Connect to the gateway, discover the bus, and set up entities."""
     host = entry.data[CONF_HOST]
@@ -87,7 +130,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     try:
         group_names = await async_fetch_group_names(hass, host)
-        await coordinator.async_discover(group_names)
+        node_ids = await client.async_ping_all()
+        labels = await async_fetch_device_labels(hass, host, node_ids)
+        await coordinator.async_discover(group_names, name_overrides=labels)
     except UaiError as err:
         await client.async_disconnect()
         raise ConfigEntryNotReady(f"Discovery failed: {err}") from err
