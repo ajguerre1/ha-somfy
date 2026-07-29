@@ -66,7 +66,7 @@ Real-world conditions the integration must tolerate. None of these are code defe
 |----|------|-----|--------|-----------|
 | PERF-01 | **Change-gated state writes.** Compare before `async_write_ha_state()`. The live HA system fans every state change out to ~48 wall panels; baseline churn is 3.7 events/s. | H | open | Churn re-measured with all entities live and not materially higher |
 | PERF-02 | **Poll only position-capable motors**, staggered, default 60 s, configurable. The 9 Irismo are never polled. | H | open | Irismo generate zero poll traffic |
-| PERF-03 | **Fast-poll only a moving motor** (~2 s) and stop as soon as it settles. Affordable given the measured latency. | M | open | Verified by observing traffic during a single move |
+| PERF-03 | **Fast-poll only a moving motor** (~2 s) and stop as soon as it settles. Implemented: `SomfyCoordinator.async_follow_movement` is called after each movement command with only the nodes just commanded, polls them every 2 s, and drops each once its position is unchanged for 3 consecutive reads (~6 s, which covers motor start-up delay). Hard ceiling of 120 s. Non-positional nodes are filtered out, so the nine Irismo generate zero extra traffic. Entities stay change-gated, so a no-op poll still writes nothing. | M | in-progress | Verified live: a moving cover updates within a few seconds instead of up to 60 |
 | PERF-04 | **`iot_class` is `local_polling`, not `local_push`.** Zero unsolicited notifications appeared in 149 requests, contradicting prior art's `local_push` claim. | M | open | manifest.json declares `local_polling` |
 
 ## 5. Packaging & distribution

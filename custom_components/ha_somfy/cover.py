@@ -210,17 +210,21 @@ class SomfyMotorCover(_SomfyCoverBase):
             "groups": node.groups,
         }
 
+    def _follow(self) -> None:
+        """Track this motor at the fast interval while it moves."""
+        self.coordinator.async_follow_movement([self._node_id])
+
     async def async_open_cover(self, **kwargs: Any) -> None:
         await self.coordinator.client.async_move_up(self._node_id)
-        await self.coordinator.async_request_refresh()
+        self._follow()
 
     async def async_close_cover(self, **kwargs: Any) -> None:
         await self.coordinator.client.async_move_down(self._node_id)
-        await self.coordinator.async_request_refresh()
+        self._follow()
 
     async def async_stop_cover(self, **kwargs: Any) -> None:
         await self.coordinator.client.async_move_stop(self._node_id)
-        await self.coordinator.async_request_refresh()
+        self._follow()
 
     async def async_set_cover_position(self, **kwargs: Any) -> None:
         if self._capability is not Capability.POSITIONAL:
@@ -233,7 +237,7 @@ class SomfyMotorCover(_SomfyCoverBase):
             return
         target = ha_to_gateway_position(int(kwargs[ATTR_POSITION]))
         await self.coordinator.client.async_move_to(self._node_id, target)
-        await self.coordinator.async_request_refresh()
+        self._follow()
 
 
 class SomfyGroupCover(_SomfyCoverBase):
@@ -318,17 +322,27 @@ class SomfyGroupCover(_SomfyCoverBase):
             "member_count": len(group.members),
         }
 
+    def _follow(self) -> None:
+        """Track this group's member motors while they move.
+
+        Only the members of this group, not the whole bus. An all-Irismo group
+        contributes nothing, since the coordinator skips non-positional nodes.
+        """
+        group = self._group
+        if group is not None:
+            self.coordinator.async_follow_movement(group.members)
+
     async def async_open_cover(self, **kwargs: Any) -> None:
         await self.coordinator.client.async_move_up(self._group_id, is_group=True)
-        await self.coordinator.async_request_refresh()
+        self._follow()
 
     async def async_close_cover(self, **kwargs: Any) -> None:
         await self.coordinator.client.async_move_down(self._group_id, is_group=True)
-        await self.coordinator.async_request_refresh()
+        self._follow()
 
     async def async_stop_cover(self, **kwargs: Any) -> None:
         await self.coordinator.client.async_move_stop(self._group_id, is_group=True)
-        await self.coordinator.async_request_refresh()
+        self._follow()
 
     async def async_set_cover_position(self, **kwargs: Any) -> None:
         if self._capability is not Capability.POSITIONAL:
@@ -339,4 +353,4 @@ class SomfyGroupCover(_SomfyCoverBase):
             return
         target = ha_to_gateway_position(int(kwargs[ATTR_POSITION]))
         await self.coordinator.client.async_move_to(self._group_id, target, is_group=True)
-        await self.coordinator.async_request_refresh()
+        self._follow()

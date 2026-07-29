@@ -14,6 +14,24 @@ DEFAULT_POLL_INTERVAL: Final = 60
 MIN_POLL_INTERVAL: Final = 10
 MAX_POLL_INTERVAL: Final = 3600
 
+# --- Following a moving motor ----------------------------------------------
+#
+# At the default 60 s interval a shade you just opened can read its old
+# position for most of a minute, which looks broken. While a motor is moving we
+# poll it faster -- but *only that motor*, never the fleet, because every state
+# change fans out to the whole wall-panel estate.
+#
+# The bus is fast (measured mean 0.03 s per request), so this costs very little.
+MOVING_POLL_INTERVAL: Final = 2
+
+# Consecutive unchanged readings before a motor is considered settled. Three
+# (~6 s) comfortably covers the delay between issuing a command and the motor
+# actually starting, so we do not give up before it has moved.
+MOVING_SETTLE_READS: Final = 3
+
+# Hard ceiling, so a motor that never settles cannot poll forever.
+MOVING_POLL_MAX_SECONDS: Final = 120
+
 # A node can miss a discovery pass and come back; one was observed absent from
 # a single ping and present in the four that followed. Entities must survive
 # that, so a node is only considered gone after this many consecutive misses.
