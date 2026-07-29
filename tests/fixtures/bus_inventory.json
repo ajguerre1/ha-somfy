@@ -1,0 +1,703 @@
+﻿{
+    "status":  "ok",
+    "started":  "2026-07-29T14:04:00.493541+00:00",
+    "host":  "\u003credacted\u003e",
+    "params_shape":  "list",
+    "node_count":  49,
+    "type_histogram":  {
+                           "Sonesse 50DC":  28,
+                           "Sonesse 30":  12,
+                           "SDN Module":  9
+                       },
+    "nodes":  [
+                  {
+                      "node_id":  "136EA5",
+                      "name":  "RoomE Bed B/O",
+                      "type":  "Sonesse 50DC",
+                      "position":  100,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010114"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136DA3",
+                      "name":  "RoomF Bed B/O",
+                      "type":  "Sonesse 50DC",
+                      "position":  100,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010117"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136DAB",
+                      "name":  "RoomL B/O 2",
+                      "type":  "Sonesse 50DC",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "01010D"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136DB2",
+                      "name":  "RoomJ SH 2",
+                      "type":  "Sonesse 50DC",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "01010C"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136DB3",
+                      "name":  "RoomG B/O 2",
+                      "type":  "Sonesse 50DC",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010106"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136DB6",
+                      "name":  "RoomL B/O 3",
+                      "type":  "Sonesse 50DC",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "01010D"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136E1F",
+                      "name":  "RoomE Bath SH",
+                      "type":  "Sonesse 50DC",
+                      "position":  100,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010113"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136DA9",
+                      "name":  "RoomJ B/O 1",
+                      "type":  "Sonesse 50DC",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "01010B"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "077546",
+                      "name":  "RoomM B/O 2",
+                      "type":  "Sonesse 30",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "01010F"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136DAF",
+                      "name":  "RoomL SH 2",
+                      "type":  "Sonesse 50DC",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "01010E"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136E25",
+                      "name":  "RoomA SH 1",
+                      "type":  "Sonesse 50DC",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010103"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136DDE",
+                      "name":  "RoomF Bed SH",
+                      "type":  "Sonesse 50DC",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010118"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136DDD",
+                      "name":  "RoomH SH 1",
+                      "type":  "Sonesse 50DC",
+                      "position":  100,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010108"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136EA8",
+                      "name":  "RoomH SH 2",
+                      "type":  "Sonesse 50DC",
+                      "position":  100,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010108"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "40FD76",
+                      "name":  "RoomI SH 1",
+                      "type":  "SDN Module",
+                      "position":  null,
+                      "position_error":  "no result key: {\u0027error\u0027: -32600, \u0027id\u0027: 1046}",
+                      "positional":  false,
+                      "groups":  [
+                                     "01010A"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136E38",
+                      "name":  "RoomA B/O 1",
+                      "type":  "Sonesse 50DC",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010102"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136E3E",
+                      "name":  "RoomG B/O 4",
+                      "type":  "Sonesse 50DC",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010106"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136DB5",
+                      "name":  "RoomL SH 1",
+                      "type":  "Sonesse 50DC",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "01010E"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "40FD85",
+                      "name":  "RoomI SH 2",
+                      "type":  "SDN Module",
+                      "position":  null,
+                      "position_error":  "no result key: {\u0027error\u0027: -32600, \u0027id\u0027: 1058}",
+                      "positional":  false,
+                      "groups":  [
+                                     "01010A"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136EA6",
+                      "name":  "RoomL B/O 1",
+                      "type":  "Sonesse 50DC",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "01010D"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136DE0",
+                      "name":  "RoomG B/O 1",
+                      "type":  "Sonesse 50DC",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010106"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "40FD7B",
+                      "name":  "RoomG SH 1",
+                      "type":  "SDN Module",
+                      "position":  null,
+                      "position_error":  "no result key: {\u0027error\u0027: -32600, \u0027id\u0027: 1067}",
+                      "positional":  false,
+                      "groups":  [
+                                     "010107"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "40FD89",
+                      "name":  "RoomI B/O 3",
+                      "type":  "SDN Module",
+                      "position":  null,
+                      "position_error":  "no result key: {\u0027error\u0027: -32600, \u0027id\u0027: 1070}",
+                      "positional":  false,
+                      "groups":  [
+                                     "010109"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "077531",
+                      "name":  "RoomM SH 1",
+                      "type":  "Sonesse 30",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010110"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136E33",
+                      "name":  "RoomA B/O 2",
+                      "type":  "Sonesse 50DC",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010103"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136EA1",
+                      "name":  "RoomK SH",
+                      "type":  "Sonesse 50DC",
+                      "position":  100,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010119"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136D73",
+                      "name":  "RoomL SH 3",
+                      "type":  "Sonesse 50DC",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "01010E"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "077526",
+                      "name":  "RoomB B/O 2",
+                      "type":  "Sonesse 30",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010104"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136E3F",
+                      "name":  "RoomA B/O 2",
+                      "type":  "Sonesse 50DC",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010102"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "07752B",
+                      "name":  "RoomB SH 1",
+                      "type":  "Sonesse 30",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010105"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "40FD74",
+                      "name":  "RoomG SH 2",
+                      "type":  "SDN Module",
+                      "position":  null,
+                      "position_error":  "no result key: {\u0027error\u0027: -32600, \u0027id\u0027: 1094}",
+                      "positional":  false,
+                      "groups":  [
+                                     "010107"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "077537",
+                      "name":  "RoomB B/O 3",
+                      "type":  "Sonesse 30",
+                      "position":  false,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136EA7",
+                      "name":  "RoomF Bath SH",
+                      "type":  "Sonesse 50DC",
+                      "position":  100,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010116"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136DB4",
+                      "name":  "RoomJ B/O 2",
+                      "type":  "Sonesse 50DC",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "01010B"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "07753E",
+                      "name":  "RoomB SH 2",
+                      "type":  "Sonesse 30",
+                      "position":  false,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010105"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "077550",
+                      "name":  "RoomG B/O 3",
+                      "type":  "Sonesse 30",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010106"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "07696A",
+                      "name":  "RoomM B/O 1",
+                      "type":  "Sonesse 30",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "01010F"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136DAD",
+                      "name":  "RoomE Bed SH",
+                      "type":  "Sonesse 50DC",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010115"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136DA5",
+                      "name":  "RoomJ SH 1",
+                      "type":  "Sonesse 50DC",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "01010C"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "077538",
+                      "name":  "RoomB SH 3",
+                      "type":  "Sonesse 30",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010105"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "136E1E",
+                      "name":  "RoomC B/O",
+                      "type":  "Sonesse 50DC",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010111"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "13680E",
+                      "name":  "RoomA B/O 3",
+                      "type":  "Sonesse 50DC",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010102"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "07752F",
+                      "name":  "RoomB SH 4",
+                      "type":  "Sonesse 30",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010105"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "077532",
+                      "name":  "RoomM SH 2",
+                      "type":  "Sonesse 30",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010110"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "40FD88",
+                      "name":  "RoomI B/O 1",
+                      "type":  "SDN Module",
+                      "position":  null,
+                      "position_error":  "no result key: {\u0027error\u0027: -32600, \u0027id\u0027: 1136}",
+                      "positional":  false,
+                      "groups":  [
+                                     "010109"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "40FD75",
+                      "name":  "RoomI SH 3",
+                      "type":  "SDN Module",
+                      "position":  null,
+                      "position_error":  "no result key: {\u0027error\u0027: -32600, \u0027id\u0027: 1139}",
+                      "positional":  false,
+                      "groups":  [
+                                     "01010A"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "40FD86",
+                      "name":  "RoomI B/O 2",
+                      "type":  "SDN Module",
+                      "position":  null,
+                      "position_error":  "no result key: {\u0027error\u0027: -32600, \u0027id\u0027: 1142}",
+                      "positional":  false,
+                      "groups":  [
+                                     "010109"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "07752C",
+                      "name":  "RoomB B/O 1",
+                      "type":  "Sonesse 30",
+                      "position":  0,
+                      "position_error":  null,
+                      "positional":  true,
+                      "groups":  [
+                                     "010104"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  },
+                  {
+                      "node_id":  "40FCFC",
+                      "name":  "RoomD SH",
+                      "type":  "SDN Module",
+                      "position":  null,
+                      "position_error":  "no result key: {\u0027error\u0027: -32600, \u0027id\u0027: 1148}",
+                      "positional":  false,
+                      "groups":  [
+                                     "010112"
+                                 ],
+                      "groups_error":  null,
+                      "info_error":  null,
+                      "info_attempts":  1
+                  }
+              ],
+    "notifications":  [
+
+                      ]
+}

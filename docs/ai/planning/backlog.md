@@ -15,21 +15,23 @@ surface, marked complete when verified, and deleted when no longer relevant.
 
 ## 1. Protocol discovery
 
+**PROTO-01 through PROTO-06 are done** — see [Completed](#completed) and the findings doc
+[`docs/ai/design/feature-uai-protocol.md`](../design/feature-uai-protocol.md).
+
 | ID | Item | Pri | Status | Done when |
 |----|------|-----|--------|-----------|
-| PROTO-01 | **Build `scripts/probe_uai.py`** — query-only inventory tool: auth handshake, `sdn.status.ping "*"`, then per node `sdn.status.info`, `sdn.group.get`, one `sdn.status.position`. No movement commands, ever. | H | open | Script runs end-to-end against `192.168.1.50` and writes a transcript |
-| PROTO-02 | **Capture the Irismo `type` string.** The single unpublished fact this project turns on. Expect all 9 Irismo nodes to report identically (shared 1811129 hardware). | H | blocked by PROTO-01 | All 9 Irismo types recorded; agreement or disagreement documented |
-| PROTO-03 | **Confirm the `params` wire shape.** Prior art disagrees: peter-dolkens sends a dict, captured traffic shows a list of single-key dicts. Settle it against the real gateway. | H | blocked by PROTO-01 | Correct shape proven by a successful response |
-| PROTO-04 | **Confirm group addressing.** Hypothesis: group index N → `1.1.(N-1)`, from `somfy_controls.json` showing `ALL` = `1.1.0`. Cross-check against `sdn.group.get` membership replies. | M | blocked by PROTO-01 | Addressing scheme confirmed for all 25 groups |
-| PROTO-05 | **Verify all 49 nodes answer.** Somfy's own docs warn that replies from every device are not guaranteed on a busy bus. Determine whether discovery needs retries, and how many. | M | blocked by PROTO-01 | Node count and required retry policy recorded |
-| PROTO-06 | **Sanitise captures into `tests/fixtures/`.** Raw captures stay gitignored; committed fixtures carry no credentials. | H | blocked by PROTO-01 | Fixtures committed, raw captures confirmed untracked |
 | PROTO-07 | **Investigate `GET /somfy_devices.json` (403).** The HTTP interface exposes richer data than telnet — raw pulse counts, limits, direction, firmware. Worth having if auth is cheap. | L | open | Auth method identified, or documented as not worth pursuing |
+| PROTO-08 | **Settle position polarity (Q1).** Does `0` mean open or closed? Somfy convention is 0=open/100=closed, the inverse of HA's. Observed values are only ever 0 or 100, so the captured data cannot disambiguate. **Do not assume** — the whole cover UI inverts on this. | H | open | One motor moved and observed in Phase 6; polarity documented with evidence |
+| PROTO-09 | **Confirm bare-prefix methods.** `philipflesher` uses `status.info` without the `sdn.` prefix; both reportedly work. Only matters if we ever need a fallback. | L | open | Confirmed or dismissed |
 
 ## 2. Capability model
 
 | ID | Item | Pri | Status | Done when |
 |----|------|-----|--------|-----------|
-| CAP-01 | **Classifier: type string → capability**, normalised and case-insensitive, with a position probe verifying unknown types. Unknown hardware degrades to open/close/stop, never a dead slider. | H | blocked by PROTO-02 | Unit tests cover Sonesse, Irismo, and an unknown type |
+| CAP-01 | **Classifier: type string → capability**, normalised and case-insensitive, with a position probe verifying unknown types. Unknown hardware degrades to open/close/stop, never a dead slider. **Match `sdn module`, not `irismo`** — see CAP-05. | H | open | Unit tests cover `Sonesse 50DC`, `Sonesse 30`, `SDN Module`, and an unknown type |
+| CAP-04 | **Reject `bool` before any numeric position check.** `isinstance(False, int)` is `True` in Python, so the gateway's `{"result":false}` reads as position 0. This bug was found and fixed in the probe itself; it must not reappear in the client. | H | open | A test asserts `False` is not accepted as a position |
+| CAP-05 | **Do not classify on the string `irismo`** — it never appears on the wire. The gateway reports the 1811129 bridge as `SDN Module`. A regression here silently breaks all 9 Irismo. | H | open | Test asserts `SDN Module` → non-positional |
+| CAP-06 | **Treat `false` position as "temporarily unknown", not "non-positional".** A Sonesse must never have its feature set flap because one poll failed. | H | open | Test asserts capability is stable across a `false` reading |
 | CAP-02 | **Per-motor capability override in the options flow** — force-position / force-no-position, as the manual escape hatch when detection is wrong. | M | open | Override settable per motor and respected by the entity |
 | CAP-03 | **Never hardcode `supported_features`.** Guard against regression to the bug this project exists to fix. | H | open | A test fails if features are set independent of capability |
 
@@ -37,16 +39,32 @@ surface, marked complete when verified, and deleted when no longer relevant.
 
 | ID | Item | Pri | Status | Done when |
 |----|------|-----|--------|-----------|
-| GROUP-01 | **25 group cover entities**, `OPEN\|CLOSE\|STOP` only — group position is not meaningful. Names already readable from `GET /somfy_groups.json`. | M | blocked by PROTO-04 | 25 group covers present and operable |
-| GROUP-02 | **Per-motor group membership** recorded as an entity attribute. Static — do not let it churn. | L | blocked by PROTO-04 | Membership visible on motor entities |
+| GROUP-01 | **Group cover entities**, `OPEN\|CLOSE\|STOP` only — group position is not meaningful. Address formula confirmed: `"0101" + f"{index:02X}"`. | M | open | Group covers present and operable |
+| GROUP-02 | **Per-motor group membership** recorded as an entity attribute. Static — do not let it churn. | L | open | Membership visible on motor entities |
+| GROUP-03 | **Decide how to handle group 1 `ALL`.** It returns no membership and behaves as a broadcast, so only 24 of 25 groups are discoverable from `sdn.group.get`. Expose it as a 25th "all blinds" entity, or omit it? | M | open | Decision made and implemented |
 
-## 4. Performance & fan-out
+## 3b. Hardware findings — surfaced by the Phase 1 probe
+
+Real-world conditions the integration must tolerate. None of these are code defects.
 
 | ID | Item | Pri | Status | Done when |
 |----|------|-----|--------|-----------|
-| PERF-01 | **Change-gated state writes.** Compare before `async_write_ha_state()`. The live HA system fans every state change out to ~48 wall panels; baseline churn is 3.7 events/s. | H | open | Churn re-measured with all 74 entities live and not materially higher |
+| HW-01 | **`RoomB SH 2` (`07753E`, Sonesse 30) never reports position** — replies `false` on every pass, while its sibling `07752B` on the same run reports normally. Suggests unset limits or a motor fault, not a bus problem. Needs a look in the UAI+ web UI. | M | open | Cause identified; motor fixed or documented as expected |
+| HW-02 | **Tolerate transient node dropout.** `077537` was missing from one discovery pass, then present in 4 of 4 retries. Discovery must be a union over time — never remove an entity or mark it unavailable on a single miss. | H | open | Several consecutive misses required before a node is considered gone; covered by a test |
+| HW-03 | **Duplicate friendly name** — `136E33` and `136E3F` are both `RoomA B/O 2`. Collides when deriving entity IDs. | M | open | Names disambiguated, or confirmed intentional and handled |
+
+## 4. Performance & fan-out
+
+> **Measured 2026-07-29:** 149 requests in **5.0 s** total, mean 0.03 s, max 0.53 s, zero retries.
+> The bus is *fast*. The planning assumption that the gateway is slow under bulk query was wrong;
+> polling all 40 positional motors costs roughly **1.2 s**.
+
+| ID | Item | Pri | Status | Done when |
+|----|------|-----|--------|-----------|
+| PERF-01 | **Change-gated state writes.** Compare before `async_write_ha_state()`. The live HA system fans every state change out to ~48 wall panels; baseline churn is 3.7 events/s. | H | open | Churn re-measured with all entities live and not materially higher |
 | PERF-02 | **Poll only position-capable motors**, staggered, default 60 s, configurable. The 9 Irismo are never polled. | H | open | Irismo generate zero poll traffic |
-| PERF-03 | **Fast-poll only a moving motor** (~2 s) and stop as soon as it settles. | M | open | Verified by observing traffic during a single move |
+| PERF-03 | **Fast-poll only a moving motor** (~2 s) and stop as soon as it settles. Affordable given the measured latency. | M | open | Verified by observing traffic during a single move |
+| PERF-04 | **`iot_class` is `local_polling`, not `local_push`.** Zero unsolicited notifications appeared in 149 requests, contradicting prior art's `local_push` claim. | M | open | manifest.json declares `local_polling` |
 
 ## 5. Packaging & distribution
 
@@ -87,7 +105,14 @@ Deliberately deferred — revisit only if the trade-off changes.
 
 ## Completed
 
-_None yet._ Move items here with their completion date and the evidence that verified them.
+| ID | Item | Done | Evidence |
+|----|------|------|----------|
+| PROTO-01 | Built `scripts/probe_uai.py`, query-only with an enforced allowlist | 2026-07-29 | Ran clean against all 49 nodes; `tests/test_probe_safety.py` proves 13 mutating/unknown methods are refused and 4 read-only ones permitted |
+| PROTO-02 | **Irismo reports `type: "SDN Module"`** — all 9, identically. The string `irismo` never appears; the gateway names the 1811129 bridge, not the motor. All 9 refuse position with `{"error":-32600}` | 2026-07-29 | `tests/fixtures/bus_inventory.json` — histogram `Sonesse 50DC=28, Sonesse 30=12, SDN Module=9` |
+| PROTO-03 | `params` is a **list of single-key dicts**, not a bare dict | 2026-07-29 | Runtime shape detection returned `list`; 149 successful requests |
+| PROTO-04 | Group address = `"0101" + f"{index:02X}"`, index 1-based from `somfy_groups.json`. Group 1 `ALL` is a broadcast with no stored membership | 2026-07-29 | All 24 member-bearing groups matched by name, e.g. `010106`→`RoomG B/O`, `010119`→`RoomK SH` |
+| PROTO-05 | Bus is fast and reliable: 149 requests in 5.0 s, mean 0.03 s, **zero retries**. One transient single-node dropout observed → HW-02 | 2026-07-29 | `timings` in probe output; 6 discovery passes |
+| PROTO-06 | Sanitised fixtures committed; raw captures gitignored | 2026-07-29 | `tests/fixtures/*.json` committed; credential scan across all committable files came back clean |
 
 ---
 
@@ -108,3 +133,4 @@ _None yet._ Move items here with their completion date and the evidence that ver
 | Date | Change |
 |------|--------|
 | 2026-07-29 | Created. Seeded with 30 items from the project plan and the live gateway reconnaissance (ports open, 25 group names read, `somfy_devices.json` 403, 1811129 confirmed on all 9 Irismo). |
+| 2026-07-29 | **Phase 1 gate passed.** PROTO-01..06 completed. Added PROTO-08/09, CAP-04/05/06, GROUP-03, HW-01/02/03, PERF-04. Key correction: the classifier must match **`SDN Module`**, not `irismo` — the planned substring list would have matched none of the 9 Irismo. Second correction: the bus is fast, not slow, so the cautious polling assumption in the plan was unnecessary. |
