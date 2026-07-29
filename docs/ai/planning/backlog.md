@@ -21,8 +21,8 @@ surface, marked complete when verified, and deleted when no longer relevant.
 | ID | Item | Pri | Status | Done when |
 |----|------|-----|--------|-----------|
 | PROTO-07 | **Investigate `GET /somfy_devices.json` (403).** The HTTP interface exposes richer data than telnet — raw pulse counts, limits, direction, firmware. Worth having if auth is cheap. | L | open | Auth method identified, or documented as not worth pursuing |
-| PROTO-08 | **Settle position polarity (Q1).** Does `0` mean open or closed? Somfy convention is 0=open/100=closed, the inverse of HA's. Observed values are only ever 0 or 100, so the captured data cannot disambiguate. **Do not assume** — the whole cover UI inverts on this. **Owner deferred the movement test to Phase 6**, so the cover layer keeps polarity behind a single named constant that can be flipped in one place. | H | open | One motor moved and observed in Phase 6; polarity documented with evidence |
 | PROTO-09 | **Confirm bare-prefix methods.** `philipflesher` uses `status.info` without the `sdn.` prefix; both reportedly work. Only matters if we ever need a fallback. | L | open | Confirmed or dismissed |
+| AREA-01 | **Reassign the 24 group entities to their real rooms.** They inherit the gateway device's area (`it_equipment`). Cosmetic, and better done after the dashboard migration so entity IDs are settled first. | L | open | Each group entity sits in its own room's area |
 
 ## 2. Capability model
 
@@ -124,6 +124,9 @@ Deliberately deferred — revisit only if the trade-off changes.
 | PROTO-05 | Bus is fast and reliable: 149 requests in 5.0 s, mean 0.03 s, **zero retries**. One transient single-node dropout observed → HW-02 | 2026-07-29 | `timings` in probe output; 6 discovery passes |
 | PROTO-06 | Sanitised fixtures committed; raw captures gitignored | 2026-07-29 | `tests/fixtures/*.json` committed; credential scan across all committable files came back clean |
 | WORK-06 | Stale `ajguerre1/brands` fork deleted (created for the rejected PR #10871) | 2026-07-29 | `gh api repos/ajguerre1/brands` → **404**; `gh repo list ajguerre1 --fork` returns nothing; `ha-somfy` confirmed intact and not a fork |
+| **PROTO-08** | **Position polarity confirmed correct.** `GATEWAY_POSITION_IS_INVERTED = True` stands; Somfy 0 = open, HA 0 = closed. Settled with **zero movement**. | 2026-07-29 | Live entities read closed for all four bathroom/toilet shades and both guest bed blackouts, open for everything else; owner confirmed that matches the physical blinds |
+| **CAP-03 (live)** | **The Irismo fix verified on real hardware.** Four all-Irismo groups report `supported_features: 11` with `assumed_state: true` and state `unknown`; all twenty Sonesse groups report `15` with real positions. | 2026-07-29 | `batch_get_state` across all 24 group entities |
+| MIGRATE-01 | Entity IDs re-verified against the live registry | 2026-07-29 | All 24 observed as `cover.somfy_uai_*` — HA prefixes the gateway device name, so the predicted `cover.roomb_sh` form was wrong. Map corrected; member counts match the Phase 1 probe exactly |
 | CAP-01 | Classifier maps type string → capability, probing unknown types | 2026-07-29 | `tests/test_models.py`; replaying the real 49-node inventory splits exactly 40 positional / 9 non-positional with 0 unknown |
 | CAP-04 | `bool` rejected before any numeric position check | 2026-07-29 | `test_bool_is_never_a_position`; the probe's own version of this bug was found and fixed |
 | CAP-05 | Classifier matches `SDN Module`, not `irismo` | 2026-07-29 | `test_sdn_module_is_non_positional`; `irismo` retained only as a defensive alias |
