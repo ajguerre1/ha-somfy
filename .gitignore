@@ -9,6 +9,8 @@ nimbalyst-local/
 scripts/output/
 *.raw.log
 secrets.yaml
+secrets.local.json
+**/secrets.local.json
 .env
 
 # Python
