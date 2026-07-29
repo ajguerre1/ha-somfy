@@ -101,7 +101,6 @@ Real-world conditions the integration must tolerate. None of these are code defe
 | WORK-03 | **Author a `somfy-sdn` skill** from Phase 1 findings. No skill exists anywhere for Somfy SDN, HACS/custom-component development, or telnet — verified across 74 registries / 3604 skills. | L | open | Skill written and usable |
 | WORK-04 | **Git `post-commit` auto-push hook is not version-controlled** (`.git/hooks/` isn't tracked). Re-add if this repo is cloned fresh. | L | open | Hook present in any working copy in use |
 | WORK-05 | **Confirm the brand icon appears once installed.** Since HA 2026.3, custom integrations serve brand images from their own `custom_components/<domain>/brand/` folder via `/api/brands/integration/{domain}/{image}`, and local images take priority over the brands CDN. `home-assistant/brands` **no longer accepts custom integrations** — PR #10871 was closed on that basis. Before installation HACS falls back to the CDN, which returns a grey placeholder for any unknown domain; that is the reported symptom and is expected. **Unverified:** that the icon resolves after installation. Check at install time. | L | open | Icon renders in HACS/HA once the integration is installed |
-| WORK-06 | **Delete the stale `ajguerre1/brands` fork.** Created for the rejected PR #10871 and now serves no purpose. The current token lacks `delete_repo` scope, so this is a manual cleanup. | L | open | Fork removed |
 
 ## 8. Parked
 
@@ -122,6 +121,7 @@ Deliberately deferred — revisit only if the trade-off changes.
 | PROTO-04 | Group address = `"0101" + f"{index:02X}"`, index 1-based from `somfy_groups.json`. Group 1 `ALL` is a broadcast with no stored membership | 2026-07-29 | All 24 member-bearing groups matched by name, e.g. `010106`→`RoomG B/O`, `010119`→`RoomK SH` |
 | PROTO-05 | Bus is fast and reliable: 149 requests in 5.0 s, mean 0.03 s, **zero retries**. One transient single-node dropout observed → HW-02 | 2026-07-29 | `timings` in probe output; 6 discovery passes |
 | PROTO-06 | Sanitised fixtures committed; raw captures gitignored | 2026-07-29 | `tests/fixtures/*.json` committed; credential scan across all committable files came back clean |
+| WORK-06 | Stale `ajguerre1/brands` fork deleted (created for the rejected PR #10871) | 2026-07-29 | `gh api repos/ajguerre1/brands` → **404**; `gh repo list ajguerre1 --fork` returns nothing; `ha-somfy` confirmed intact and not a fork |
 | CAP-01 | Classifier maps type string → capability, probing unknown types | 2026-07-29 | `tests/test_models.py`; replaying the real 49-node inventory splits exactly 40 positional / 9 non-positional with 0 unknown |
 | CAP-04 | `bool` rejected before any numeric position check | 2026-07-29 | `test_bool_is_never_a_position`; the probe's own version of this bug was found and fixed |
 | CAP-05 | Classifier matches `SDN Module`, not `irismo` | 2026-07-29 | `test_sdn_module_is_non_positional`; `irismo` retained only as a defensive alias |
