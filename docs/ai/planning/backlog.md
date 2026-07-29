@@ -21,7 +21,7 @@ surface, marked complete when verified, and deleted when no longer relevant.
 | ID | Item | Pri | Status | Done when |
 |----|------|-----|--------|-----------|
 | PROTO-07 | **Investigate `GET /somfy_devices.json` (403).** The HTTP interface exposes richer data than telnet — raw pulse counts, limits, direction, firmware. Worth having if auth is cheap. | L | open | Auth method identified, or documented as not worth pursuing |
-| PROTO-08 | **Settle position polarity (Q1).** Does `0` mean open or closed? Somfy convention is 0=open/100=closed, the inverse of HA's. Observed values are only ever 0 or 100, so the captured data cannot disambiguate. **Do not assume** — the whole cover UI inverts on this. | H | open | One motor moved and observed in Phase 6; polarity documented with evidence |
+| PROTO-08 | **Settle position polarity (Q1).** Does `0` mean open or closed? Somfy convention is 0=open/100=closed, the inverse of HA's. Observed values are only ever 0 or 100, so the captured data cannot disambiguate. **Do not assume** — the whole cover UI inverts on this. **Owner deferred the movement test to Phase 6**, so the cover layer keeps polarity behind a single named constant that can be flipped in one place. | H | open | One motor moved and observed in Phase 6; polarity documented with evidence |
 | PROTO-09 | **Confirm bare-prefix methods.** `philipflesher` uses `status.info` without the `sdn.` prefix; both reportedly work. Only matters if we ever need a fallback. | L | open | Confirmed or dismissed |
 
 ## 2. Capability model
@@ -41,7 +41,8 @@ surface, marked complete when verified, and deleted when no longer relevant.
 |----|------|-----|--------|-----------|
 | GROUP-01 | **Group cover entities**, `OPEN\|CLOSE\|STOP` only — group position is not meaningful. Address formula confirmed: `"0101" + f"{index:02X}"`. | M | open | Group covers present and operable |
 | GROUP-02 | **Per-motor group membership** recorded as an entity attribute. Static — do not let it churn. | L | open | Membership visible on motor entities |
-| GROUP-03 | **Decide how to handle group 1 `ALL`.** It returns no membership and behaves as a broadcast, so only 24 of 25 groups are discoverable from `sdn.group.get`. Expose it as a 25th "all blinds" entity, or omit it? | M | open | Decision made and implemented |
+| GROUP-03 | **Group 1 `ALL` is omitted** (owner's decision). Only the 24 member-bearing groups become entities. | M | open | Discovery skips `010101` |
+| GROUP-04 | **Groups inherit their members' capability.** Every group on this bus is homogeneous — 4 are all-Irismo (`RoomG SH`, `RoomI B/O`, `RoomI SH`, `RoomD SH`), the rest all-Sonesse. Guard the mixed case anyway: fall back to the least-capable member. | M | open | Test covers homogeneous and mixed groups |
 
 ## 3b. Hardware findings — surfaced by the Phase 1 probe
 
@@ -49,9 +50,9 @@ Real-world conditions the integration must tolerate. None of these are code defe
 
 | ID | Item | Pri | Status | Done when |
 |----|------|-----|--------|-----------|
-| HW-01 | **`RoomB SH 2` (`07753E`, Sonesse 30) never reports position** — replies `false` on every pass, while its sibling `07752B` on the same run reports normally. Suggests unset limits or a motor fault, not a bus problem. Needs a look in the UAI+ web UI. | M | open | Cause identified; motor fixed or documented as expected |
+| HW-01 | **`RoomB SH 2` (`07753E`, Sonesse 30) never reports position** — replies `false` on every pass, while its sibling `07752B` reports normally. **Owner confirmed this is a known issue; no action expected.** The integration must show position as unknown for this motor without breaking or demoting its capability. | L | parked | Entity handles it gracefully (covered by CAP-06) |
 | HW-02 | **Tolerate transient node dropout.** `077537` was missing from one discovery pass, then present in 4 of 4 retries. Discovery must be a union over time — never remove an entity or mark it unavailable on a single miss. | H | open | Several consecutive misses required before a node is considered gone; covered by a test |
-| HW-03 | **Duplicate friendly name** — `136E33` and `136E3F` are both `RoomA B/O 2`. Collides when deriving entity IDs. | M | open | Names disambiguated, or confirmed intentional and handled |
+| HW-03 | **Duplicate friendly name** — `136E33` and `136E3F` are both `RoomA B/O 2`. **Owner will rename in the UAI+ web UI**; re-run discovery afterwards to pick it up. Keep a defensive uniqueness guard regardless, since entity IDs must never collide. | M | open | Gateway renamed and re-discovered; uniqueness guard tested |
 
 ## 4. Performance & fan-out
 
@@ -89,7 +90,7 @@ Real-world conditions the integration must tolerate. None of these are code defe
 
 | ID | Item | Pri | Status | Done when |
 |----|------|-----|--------|-----------|
-| WORK-01 | **Orphaned `cover.*` entities.** 24 stale `restored: true` entries from a previous integration attempt remain registered. User chose to keep them, so new entities will land as `cover.roomm_shades_2` etc. and need renaming. | M | open | Entity IDs reconciled, by rename or purge |
+| WORK-01 | **Purge the 24 orphaned `cover.*` entities** so group entities reclaim their exact IDs and the 51 dashboards keep working untouched. They map **1:1 onto the 24 groups** — the previous integration exposed groups, not motors (`cover.roomb_shades` ↔ `RoomB SH`, `cover.roomi_drapes` ↔ all-Irismo `RoomI SH`, …). **Inventory and back up all 24, show the list, and delete only after explicit confirmation.** | H | open | Orphans removed and group entities hold the original entity IDs |
 | WORK-02 | **Rotate the gateway password.** It was shared in a chat transcript during planning. | M | open | Password rotated and HA config entry updated |
 | WORK-03 | **Author a `somfy-sdn` skill** from Phase 1 findings. No skill exists anywhere for Somfy SDN, HACS/custom-component development, or telnet — verified across 74 registries / 3604 skills. | L | open | Skill written and usable |
 | WORK-04 | **Git `post-commit` auto-push hook is not version-controlled** (`.git/hooks/` isn't tracked). Re-add if this repo is cloned fresh. | L | open | Hook present in any working copy in use |

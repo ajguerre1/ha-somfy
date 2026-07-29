@@ -1,0 +1,11 @@
+# Test dependencies.
+#
+# pytest-homeassistant-custom-component pulls in Home Assistant itself, which
+# cannot be imported on Windows (homeassistant.runner imports POSIX-only fcntl).
+# It is therefore installed in CI (Ubuntu) rather than on the Windows dev box.
+# The vendored uai client has no Home Assistant imports and tests anywhere.
+
+pytest>=8.0
+pytest-asyncio>=0.24
+ruff>=0.7
+pytest-homeassistant-custom-component>=0.13

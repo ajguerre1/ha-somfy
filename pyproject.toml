@@ -1,0 +1,46 @@
+[project]
+name = "ha-somfy"
+version = "0.1.0"
+description = "Home Assistant integration for the Somfy Connect UAI+ gateway"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.13"
+dependencies = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+# Home Assistant cannot be imported on Windows: homeassistant.runner imports
+# fcntl, which is POSIX-only. The development machine here is Windows, so
+# pytest-homeassistant-custom-component is NOT installed locally -- it lives in
+# requirements-test.txt and runs in CI on Ubuntu.
+#
+# Locally that means tests/ covers the vendored client
+# (custom_components/ha_somfy/uai), which imports no Home Assistant at all.
+# CI additionally runs tests/ha/, which does.
+#
+# This split is deliberate rather than a workaround: keeping the client free of
+# HA imports is what makes the bulk of the logic testable on any platform.
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",   # pycodestyle + pyflakes
+    "I",             # import sorting
+    "UP",            # pyupgrade
+    "B",             # bugbear
+    "SIM",           # simplify
+    "RUF",
+]
+ignore = [
+    "B008",  # HA config-flow style relies on calls in defaults
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests import the vendored client after a sys.path insert in conftest.
+"tests/*" = ["E402"]
+"scripts/*" = ["E402"]
