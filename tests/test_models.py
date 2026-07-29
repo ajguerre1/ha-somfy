@@ -128,17 +128,21 @@ def test_all_group_constant_matches_index_one() -> None:
 
 
 def test_duplicate_names_are_disambiguated() -> None:
-    """HW-03: nodes 136E33 and 136E3F are both named 'RoomA B/O 2'.
+    """Entity IDs must never collide, even if the gateway's labels do.
 
-    Entity IDs must never collide, even if the gateway's labels do.
+    Synthetic input. No duplicate exists on the reference bus -- an earlier
+    capture appeared to show one, but the gateway had briefly reported a stale
+    name for a node whose group membership already said otherwise. The guard is
+    kept because nothing stops an installer from labelling two motors
+    identically, and a collision would silently drop an entity.
     """
     names = unique_slug_names(
-        [("136E33", "RoomA B/O 2"), ("136E3F", "RoomA B/O 2"), ("136E38", "RoomA B/O 1")]
+        [("AAA111", "Bedroom Shade"), ("BBB222", "Bedroom Shade"), ("CCC333", "Bedroom Blackout")]
     )
     assert len(set(names.values())) == 3
-    assert names["136E38"] == "RoomA B/O 1"
-    assert names["136E33"] != names["136E3F"]
-    assert all("RoomA" in n for n in names.values())
+    assert names["CCC333"] == "Bedroom Blackout"
+    assert names["AAA111"] != names["BBB222"]
+    assert all("Bedroom" in n for n in names.values())
 
 
 def test_unique_names_are_left_alone() -> None:
