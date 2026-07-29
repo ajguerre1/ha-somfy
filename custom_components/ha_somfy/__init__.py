@@ -16,9 +16,16 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT, CONF_USERNAME, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import CONF_POLL_INTERVAL, DEFAULT_POLL_INTERVAL, DOMAIN
+from .const import (
+    CONF_POLL_INTERVAL,
+    DEFAULT_POLL_INTERVAL,
+    DOMAIN,
+    GATEWAY_MODEL,
+    MANUFACTURER,
+)
 from .coordinator import SomfyCoordinator
 from .uai.client import DEFAULT_PORT, UaiAuthError, UaiClient, UaiError
 
@@ -149,6 +156,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     await coordinator.async_config_entry_first_refresh()
+
+    # Register the gateway explicitly, before any entity is added.
+    #
+    # Each motor device declares `via_device` pointing here. If the gateway is
+    # only created implicitly by the group entities' device_info, the motors are
+    # added first and reference a parent that does not exist yet -- which Home
+    # Assistant currently warns about and will eventually reject.
+    dr.async_get(hass).async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, entry.entry_id)},
+        name="Somfy UAI+",
+        manufacturer=MANUFACTURER,
+        model=GATEWAY_MODEL,
+        configuration_url=f"http://{host}/",
+    )
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

@@ -144,6 +144,8 @@ Deliberately deferred — revisit only if the trade-off changes.
 | HA-03 | Single-argument step handlers | 2026-07-29 | CI: `test_flow_completes_and_creates_an_entry` — the flow reaches CREATE_ENTRY |
 | HA-04 | `diagnostics.py` with credentials redacted | 2026-07-29 | `async_get_config_entry_diagnostics` redacts username and password |
 | HA-05 | One device per motor | 2026-07-29 | CI: `test_each_motor_is_its_own_device_showing_its_model` |
+| **LIVE-01** | **Movement verified on real hardware — both paths.** Sonesse: `RoomM SH` (group `010110`, two motors) closed from 100 → 96, stopped mid-travel at 52, reopened to 100; owner confirmed both motors moved together. Irismo: `RoomD SH` (group `010112`, `40FCFC` behind the 1811129 bridge) closed and reopened on command, verified by eye since it reports no position by design. | 2026-07-29 | Live service calls plus owner observation |
+| **HA-06** | **`via_device` referenced a device that did not exist.** Motor devices declare the gateway as parent, but the gateway was only created implicitly by the group entities, and motors were added first. HA warned and said it would stop working in a later release. Fixed by registering the gateway explicitly during setup, before any entity is added, and by adding groups ahead of motors. | 2026-07-29 | Found in `get_error_log` during live validation; fixed in v0.1.3 |
 | HACS-01 | HACS-native layout | 2026-07-29 | CI: HACS action reports **all 9 checks passed** (needed repo topics + brand assets) |
 | HACS-02 | CI: hassfest + HACS + ruff + pytest | 2026-07-29 | All four jobs green on `main`; **123 tests passed** |
 | HACS-04 | `requirements: []` maintained | 2026-07-29 | CI: hassfest passes with the client vendored and no external requirements |
