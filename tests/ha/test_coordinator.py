@@ -67,14 +67,19 @@ async def test_following_stops_once_the_motor_settles(coordinator, mock_client) 
 
 
 async def test_position_is_updated_while_moving(coordinator, mock_client) -> None:
-    """The whole point: the entity sees the new position promptly."""
-    mock_client.async_get_position.side_effect = [70, 70, 70]
+    """The whole point: the entity sees the new position promptly.
+
+    Four readings, not three: one that changes, then MOVING_SETTLE_READS
+    unchanged ones to settle.
+    """
+    mock_client.async_get_position.side_effect = [70, 70, 70, 70]
     coordinator._moving = {SONESSE_ID}
     assert coordinator.nodes[SONESSE_ID].position == 0
 
     await coordinator._async_follow_movement()
 
     assert coordinator.nodes[SONESSE_ID].position == 70
+    assert coordinator._moving == set()
 
 
 async def test_a_slow_start_does_not_end_the_follow_early(coordinator, mock_client) -> None:
