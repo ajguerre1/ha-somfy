@@ -13,14 +13,22 @@ Two things drive the design here:
 
 from __future__ import annotations
 
+import asyncio
 import logging
+from collections.abc import Iterable
 from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import DOMAIN, MAX_MISSED_DISCOVERIES
+from .const import (
+    DOMAIN,
+    MAX_MISSED_DISCOVERIES,
+    MOVING_POLL_INTERVAL,
+    MOVING_POLL_MAX_SECONDS,
+    MOVING_SETTLE_READS,
+)
 from .uai.client import UaiClient, UaiError
 from .uai.models import Capability, GroupInfo, Node, group_index_for_id
 
@@ -47,6 +55,11 @@ class SomfyCoordinator(DataUpdateCoordinator[dict[str, Node]]):
         self.client = client
         self.nodes: dict[str, Node] = {}
         self.groups: dict[str, GroupInfo] = {}
+        # Nodes currently being followed at the fast interval, and the single
+        # task doing the following. Kept as a set so overlapping movements
+        # merge instead of cancelling each other.
+        self._moving: set[str] = set()
+        self._follow_task: asyncio.Task | None = None
 
     async def async_discover(
         self,
@@ -123,6 +136,77 @@ class SomfyCoordinator(DataUpdateCoordinator[dict[str, Node]]):
                 members=sorted(member_ids),
             )
         return groups
+
+    # -- following a moving motor -----------------------------------------
+
+    @callback
+    def async_follow_movement(self, node_ids: Iterable[str]) -> None:
+        """Poll the given nodes at the fast interval until they settle.
+
+        Called right after a movement command. Deliberately narrow: only the
+        nodes just commanded are followed, so a moving blind updates promptly
+        without the other 40-odd motors generating any extra traffic.
+
+        Non-positional nodes are skipped entirely -- an Irismo has no position
+        to read, so following it would be pure noise.
+        """
+        targets = {
+            node_id
+            for node_id in node_ids
+            if (node := self.nodes.get(node_id)) is not None
+            and node.capability is Capability.POSITIONAL
+        }
+        if not targets:
+            return
+
+        self._moving |= targets
+        if self._follow_task is None or self._follow_task.done():
+            self._follow_task = self.config_entry.async_create_background_task(
+                self.hass, self._async_follow_movement(), name=f"{DOMAIN}_follow_movement"
+            )
+
+    async def _async_follow_movement(self) -> None:
+        """Poll moving nodes until each stops changing, or the ceiling is hit."""
+        unchanged: dict[str, int] = dict.fromkeys(self._moving, 0)
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + MOVING_POLL_MAX_SECONDS
+
+        try:
+            while self._moving and loop.time() < deadline:
+                await asyncio.sleep(MOVING_POLL_INTERVAL)
+                changed = False
+
+                for node_id in list(self._moving):
+                    node = self.nodes.get(node_id)
+                    if node is None:
+                        self._moving.discard(node_id)
+                        continue
+
+                    previous = node.position
+                    try:
+                        node.position = await self.client.async_get_position(node_id)
+                    except UaiError as err:
+                        _LOGGER.debug("Position poll failed for %s: %s", node_id, err)
+                        continue
+
+                    if node.position != previous:
+                        changed = True
+                        unchanged[node_id] = 0
+                        continue
+
+                    unchanged[node_id] = unchanged.get(node_id, 0) + 1
+                    if unchanged[node_id] >= MOVING_SETTLE_READS:
+                        self._moving.discard(node_id)
+
+                if changed:
+                    # Entities are change-gated, so a no-op refresh still
+                    # writes nothing and nothing reaches the panels.
+                    self.async_update_listeners()
+        except asyncio.CancelledError:
+            raise
+        finally:
+            self._moving.clear()
+            self.async_update_listeners()
 
     async def _async_update_data(self) -> dict[str, Node]:
         """Refresh position for position-capable motors only."""
