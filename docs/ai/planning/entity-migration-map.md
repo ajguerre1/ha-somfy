@@ -22,7 +22,8 @@ WebSocket passthrough. So:
 | 4. Move Homebridge entities aside to `*_2` | owner, in the UI | **done** — 24/24 |
 | 2. Rename HA Somfy entities to the Homebridge IDs | owner, in the UI | **done** — 24/24 |
 | 3. Assign rooms | owner, in the UI | **done** — 24/24, 0 unassigned |
-| 5. Fix what entity_id inheritance does not cover | code/MCP | pending — MIGRATE-09 |
+| 5. Fix what entity_id inheritance does not cover | code/MCP | **done** — MIGRATE-09, 65 refs in 12 automations |
+| 6. Retire the Homebridge entities | owner, in the UI | **done** — after testing, 24/24 deleted |
 
 Listed in execution order, which is not the order they were requested in: 4 has to precede 2.
 
@@ -86,16 +87,17 @@ later "fixes" them back by copying the old areas.
 
 Entity-ID inheritance covers most of step 5. It does **not** cover:
 
-1. **References by `device_id`** rather than entity ID — device triggers and actions in
-   automations, and some dashboard cards. Those still point at Homebridge devices and need
-   rewriting to the new per-group devices.
-2. **`cover.set_cover_position` on the four Irismo groups** (rows 6, 8, 9, 17). Those calls are
-   no-ops today: Homebridge advertises `supported_features: 15` for them, a claim that has never
-   been true. HA Somfy correctly reports `11`, so the calls must become
-   `cover.open_cover` / `cover.close_cover`.
+1. **References by `device_id`.** Found: **65, across 12 automations**, all in device triggers and
+   device conditions — none in dashboards or scripts, and there are no scenes. All repointed at the
+   new per-group devices. **15 of them also carried an entity *registry ID*** (a UUID) rather than
+   a plain entity ID; those survive renames and so still resolved to the Homebridge entity, meaning
+   a `device_id`-only fix would have left them watching the wrong blind. Now plain `cover.*` IDs.
+2. **`cover.set_cover_position` on the four Irismo groups.** Predicted, but **there are none** —
+   all 42 such calls target Sonesse-backed covers. The four Irismo groups were never driven by
+   position, so nothing needed converting.
 
-Both are cheap to find once the renames are done, and pointless to inventory before — the
-inventory would be almost entirely of references that fix themselves.
+Deferring this inventory until after the renames was the right call: nearly every reference fixed
+itself, and what remained was 12 automations rather than 68 dashboards.
 
 ## Motors
 
@@ -113,7 +115,8 @@ re-register everything from scratch.
 - The renamed HA Somfy entity responds to open/close from a dashboard card.
 - Its state still reads correctly (`open`/`closed`, and a position for the 20 Sonesse groups).
 - The Homebridge `*_2` entity still exists and is untouched, as a fallback until the whole set is
-  proven.
+  proven. **Completed 2026-07-30**: the owner tested every replacement and then deleted all 24.
+  Zero unavailable cover entities remain, where there were 24 before this began.
 
 ## Provenance
 
