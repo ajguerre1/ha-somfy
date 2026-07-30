@@ -16,10 +16,13 @@ from custom_components.ha_somfy.uai.models import (
     Node,
     apply_capability_override,
     classify_type,
+    dotted_node_id,
     find_name_group_conflicts,
     group_id_for_index,
     group_index_for_id,
     parse_position,
+    parse_web_position,
+    undotted_node_id,
     unique_slug_names,
 )
 
@@ -377,3 +380,54 @@ def test_a_meaningless_override_falls_back_to_detection(garbage: object) -> None
     never what someone reaching for this setting wants.
     """
     assert apply_capability_override(Capability.POSITIONAL, garbage) is Capability.POSITIONAL
+
+
+# ---------------------------------------------------------------------------
+# IRIS-01: reading state from the gateway's web interface
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        # SDN Module -- a fixed 0-1000 scale, only ever at the extremes.
+        ("1000 (100 %)", 100),
+        ("0 (0 %)", 0),
+        # Sonesse -- the leading number is ENCODER PULSES, bounded by that
+        # motor's own LIMITS DOWN. 12406 and 18753 are both 100 % on the
+        # reference bus, which is exactly why the raw value must be ignored.
+        ("12406 (100 %)", 100),
+        ("18753 (100 %)", 100),
+        ("9741 (52 %)", 52),
+        # Formatting is not to be relied on anywhere in this gateway.
+        ("1000 (100%)", 100),
+        ("  1000   (  100 % )  ", 100),
+    ],
+)
+def test_the_percentage_is_read_and_the_raw_value_ignored(raw: str, expected: int) -> None:
+    assert parse_web_position(raw) == expected
+
+
+@pytest.mark.parametrize(
+    "raw",
+    ["", "   ", "1000", "unknown", "(%)", "( %)", None, 100, 1000, True, [], {"POSITION": 1}],
+)
+def test_anything_without_a_readable_percentage_is_unknown(raw: object) -> None:
+    """The web interface is a scraped surface, not an API. A firmware that
+    reformats this string must degrade to "unknown", never to a wrong state --
+    a blind reported closed when it is open is worse than one reporting nothing.
+    """
+    assert parse_web_position(raw) is None
+
+
+@pytest.mark.parametrize("raw", ["1000 (101 %)", "1000 (-1 %)", "1000 (9999 %)"])
+def test_an_out_of_range_percentage_is_refused(raw: str) -> None:
+    assert parse_web_position(raw) is None
+
+
+def test_node_ids_convert_to_and_from_the_dotted_http_form() -> None:
+    """The HTTP endpoint addresses nodes as 40.FC.FC; telnet uses 40FCFC."""
+    assert dotted_node_id("40FCFC") == "40.FC.FC"
+    assert undotted_node_id("40.FC.FC") == "40FCFC"
+    assert undotted_node_id("13.6e.a5") == "136EA5"
+    assert undotted_node_id(dotted_node_id("136EA5")) == "136EA5"

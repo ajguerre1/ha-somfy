@@ -138,6 +138,51 @@ def parse_position(raw: Any) -> int | None:
     return value
 
 
+# --- Reading state from the gateway's web interface (IRIS-01) ---------------
+#
+# `somfy_device.json` reports position as a display string: "1000 (100 %)".
+# The leading number is NOT one scale. For a Sonesse it is encoder pulses,
+# bounded by that motor's own LIMITS DOWN -- 12406 and 18753 are both 100 % on
+# the reference bus. For an SDN Module it is a fixed 0-1000. Only the
+# parenthesised percentage means the same thing for both.
+_WEB_PERCENT_RE: Final = re.compile(r"\(\s*(-?\d+)\s*%\s*\)")
+
+
+def parse_web_position(raw: Any) -> int | None:
+    """Extract the percentage from a `somfy_device.json` POSITION string.
+
+    This is a scraped display string, not an API value, so it is treated as
+    hostile: anything that does not contain a plain in-range percentage returns
+    None. A firmware that reformats it must leave the blind's state *unknown*
+    rather than wrong — reporting a blind closed when it is open is worse than
+    reporting nothing at all.
+    """
+    if not isinstance(raw, str):
+        return None
+    match = _WEB_PERCENT_RE.search(raw)
+    if match is None:
+        return None
+    value = int(match.group(1))
+    if value < POSITION_MIN or value > POSITION_MAX:
+        return None
+    return value
+
+
+def dotted_node_id(node_id: str) -> str:
+    """136EA5 -> 13.6E.A5, the form the HTTP endpoints address nodes by."""
+    return ".".join(node_id[index : index + 2] for index in range(0, len(node_id), 2))
+
+
+def undotted_node_id(value: str) -> str:
+    """13.6e.a5 -> 136EA5, for comparing a payload's NODE against what was asked.
+
+    The endpoint sometimes answers with a *different* node's payload, so that
+    comparison is the only thing standing between us and attributing one
+    blind's state to another.
+    """
+    return value.replace(".", "").strip().upper()
+
+
 def group_id_for_index(index: int) -> str:
     """Group index (1-based, as used by GET /somfy_groups.json) -> group ID."""
     return f"{GROUP_ID_PREFIX}{index:02X}"

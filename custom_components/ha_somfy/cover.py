@@ -293,11 +293,16 @@ class SomfyGroupCover(_SomfyCoverBase):
 
         A group has no position of its own, so this is derived. Members that do
         not know their position are excluded rather than counted as zero.
+
+        Capability is deliberately *not* filtered on here. An all-Irismo group
+        is non-positional -- it gets no slider -- but its members do report
+        open/closed via the web interface, and that is exactly the state the
+        group entity should show.
         """
         positions = [
             gateway_to_ha_position(node.position)
             for node in self._member_nodes()
-            if node.position is not None and node.capability is Capability.POSITIONAL
+            if node.position is not None
         ]
         if not positions:
             return None
