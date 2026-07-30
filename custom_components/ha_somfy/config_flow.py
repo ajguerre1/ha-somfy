@@ -24,9 +24,15 @@ from homeassistant.helpers.selector import (
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
 )
 
 from .const import (
+    CONF_CAPABILITY,
+    CONF_CAPABILITY_OVERRIDES,
+    CONF_MOTOR,
     CONF_POLL_INTERVAL,
     DEFAULT_POLL_INTERVAL,
     DOMAIN,
@@ -34,7 +40,7 @@ from .const import (
     MIN_POLL_INTERVAL,
 )
 from .uai.client import DEFAULT_PORT, UaiAuthError, UaiClient, UaiError
-from .uai.models import Capability
+from .uai.models import OVERRIDE_AUTO, Capability, unique_slug_names
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -140,13 +146,25 @@ class SomfyConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class SomfyOptionsFlow(OptionsFlow):
-    """Adjust polling behaviour after setup."""
+    """Adjust polling, and correct a motor that was classified wrongly.
+
+    Every step below takes exactly one positional parameter -- see this
+    module's docstring for the bug that rule exists to prevent.
+    """
+
+    def __init__(self) -> None:
+        self._motor: str | None = None
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        return self.async_show_menu(step_id="init", menu_options=["polling", "capability"])
+
+    # -- polling -----------------------------------------------------------
+
+    async def async_step_polling(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         if user_input is not None:
-            return self.async_create_entry(
-                data={CONF_POLL_INTERVAL: int(user_input[CONF_POLL_INTERVAL])}
-            )
+            return self._save({CONF_POLL_INTERVAL: int(user_input[CONF_POLL_INTERVAL])})
 
         current = self.config_entry.options.get(CONF_POLL_INTERVAL, DEFAULT_POLL_INTERVAL)
         schema = vol.Schema(
@@ -162,4 +180,111 @@ class SomfyOptionsFlow(OptionsFlow):
                 )
             }
         )
-        return self.async_show_form(step_id="init", data_schema=schema)
+        return self.async_show_form(step_id="polling", data_schema=schema)
+
+    # -- capability override -----------------------------------------------
+
+    async def async_step_capability(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Pick which motor to correct.
+
+        The list comes from discovery rather than a text box: hand-typing node
+        IDs is precisely the failure mode this integration was written against.
+        """
+        if user_input is not None:
+            self._motor = user_input[CONF_MOTOR]
+            return await self.async_step_motor()
+
+        motors = self._motor_options()
+        if not motors:
+            return self.async_abort(reason="no_motors")
+
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_MOTOR): SelectSelector(
+                    SelectSelectorConfig(options=motors, mode=SelectSelectorMode.DROPDOWN)
+                )
+            }
+        )
+        return self.async_show_form(step_id="capability", data_schema=schema)
+
+    async def async_step_motor(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Set, or clear, one motor's override."""
+        assert self._motor is not None
+
+        if user_input is not None:
+            return self._save_override(self._motor, user_input[CONF_CAPABILITY])
+
+        current = self._overrides().get(self._motor, OVERRIDE_AUTO)
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_CAPABILITY, default=current): SelectSelector(
+                    SelectSelectorConfig(
+                        options=[
+                            OVERRIDE_AUTO,
+                            Capability.POSITIONAL.value,
+                            Capability.NON_POSITIONAL.value,
+                        ],
+                        translation_key="capability",
+                        mode=SelectSelectorMode.LIST,
+                    )
+                )
+            }
+        )
+        return self.async_show_form(
+            step_id="motor",
+            data_schema=schema,
+            description_placeholders={"motor": self._motor_label(self._motor)},
+        )
+
+    # -- helpers -----------------------------------------------------------
+
+    def _coordinator(self) -> Any | None:
+        return self.hass.data.get(DOMAIN, {}).get(self.config_entry.entry_id)
+
+    def _motor_options(self) -> list[dict[str, str]]:
+        coordinator = self._coordinator()
+        if coordinator is None:
+            return []
+        names = unique_slug_names(
+            [(node.node_id, node.name) for node in coordinator.nodes.values()]
+        )
+        return [
+            {
+                "value": node.node_id,
+                "label": f"{names[node.node_id]} ({node.type_string or 'unknown type'})",
+            }
+            for node in coordinator.nodes.values()
+        ]
+
+    def _motor_label(self, node_id: str) -> str:
+        for option in self._motor_options():
+            if option["value"] == node_id:
+                return option["label"]
+        return node_id
+
+    def _overrides(self) -> dict[str, str]:
+        stored = self.config_entry.options.get(CONF_CAPABILITY_OVERRIDES)
+        return dict(stored) if isinstance(stored, dict) else {}
+
+    def _save_override(self, node_id: str, capability: str) -> ConfigFlowResult:
+        overrides = self._overrides()
+        if capability == OVERRIDE_AUTO:
+            # Clear it rather than storing "auto", so returning to automatic
+            # leaves no trace to resurface as the current setting later.
+            overrides.pop(node_id, None)
+        else:
+            overrides[node_id] = capability
+        return self._save({CONF_CAPABILITY_OVERRIDES: overrides})
+
+    def _save(self, changes: dict[str, Any]) -> ConfigFlowResult:
+        """Merge into the existing options.
+
+        `async_create_entry` replaces the options dict wholesale, so writing
+        only the section just edited would silently discard the other one --
+        setting a capability override would quietly reset the poll interval.
+        """
+        options = dict(self.config_entry.options)
+        options.update(changes)
+        return self.async_create_entry(data=options)
