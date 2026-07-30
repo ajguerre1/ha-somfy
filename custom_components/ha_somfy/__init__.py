@@ -9,6 +9,7 @@ hardware actually reports.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 
 import aiohttp
@@ -36,6 +37,8 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [Platform.COVER]
 
 GROUP_NAMES_TIMEOUT = 10
+GROUP_NAMES_ATTEMPTS = 3
+GROUP_NAMES_RETRY_DELAY = 1.0
 
 
 async def async_fetch_group_names(hass: HomeAssistant, host: str) -> dict[int, str]:
@@ -47,18 +50,37 @@ async def async_fetch_group_names(hass: HomeAssistant, host: str) -> dict[int, s
     groups simply fall back to numbered names.
     """
     url = f"http://{host}/somfy_groups.json"
-    try:
-        session = async_get_clientsession(hass)
-        async with session.get(
-            url, timeout=aiohttp.ClientTimeout(total=GROUP_NAMES_TIMEOUT)
-        ) as response:
-            if response.status != 200:
-                _LOGGER.debug("Group names unavailable (HTTP %s)", response.status)
-                return {}
-            # The gateway does not send a JSON content type.
-            payload = await response.json(content_type=None)
-    except (aiohttp.ClientError, TimeoutError, ValueError) as err:
-        _LOGGER.debug("Could not read group names from %s: %s", url, err)
+    session = async_get_clientsession(hass)
+    payload: object = None
+
+    # Retried, because losing this one request costs all 25 group names and
+    # every group falls back to "Group 18". That happened on a busy Home
+    # Assistant startup, where the gateway's small HTTP server was slow enough
+    # for a single attempt to time out.
+    for attempt in range(GROUP_NAMES_ATTEMPTS):
+        try:
+            async with session.get(
+                url, timeout=aiohttp.ClientTimeout(total=GROUP_NAMES_TIMEOUT)
+            ) as response:
+                if response.status != 200:
+                    _LOGGER.debug("Group names unavailable (HTTP %s)", response.status)
+                else:
+                    # The gateway does not send a JSON content type.
+                    payload = await response.json(content_type=None)
+        except (aiohttp.ClientError, TimeoutError, ValueError) as err:
+            _LOGGER.debug("Could not read group names from %s: %s", url, err)
+        if payload is not None:
+            break
+        if attempt < GROUP_NAMES_ATTEMPTS - 1:
+            await asyncio.sleep(GROUP_NAMES_RETRY_DELAY)
+
+    if payload is None:
+        _LOGGER.warning(
+            "Could not read group names from %s after %d attempts; groups will be "
+            "named by number until the next reload.",
+            url,
+            GROUP_NAMES_ATTEMPTS,
+        )
         return {}
 
     groups = payload.get("GROUPS") if isinstance(payload, dict) else None
@@ -128,9 +150,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     try:
         group_names = await async_fetch_group_names(hass, host)
-        node_ids = await client.async_ping_all()
-        labels = await web.async_get_labels(node_ids) if web.configured else {}
-        await coordinator.async_discover(group_names, name_overrides=labels)
+        await client.async_ping_all()
+        # Names come from telnet alone. Reading all 49 labels over HTTP made
+        # setup the slowest integration on the system -- Home Assistant warned
+        # four times that it was still waiting, and entities took ~5 minutes to
+        # appear -- because that endpoint serves one node per request from a
+        # slow embedded server, with retries. It bought nothing: the double
+        # telnet read already names all 49 nodes correctly, and did so
+        # throughout the period when this HTTP path was silently failing.
+        await coordinator.async_discover(group_names)
     except UaiError as err:
         await client.async_disconnect()
         raise ConfigEntryNotReady(f"Discovery failed: {err}") from err
