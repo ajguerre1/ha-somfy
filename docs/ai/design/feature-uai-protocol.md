@@ -150,14 +150,35 @@ prefixed form.
 | `somfy_groups.json` | 200 | Group names; the only source for them |
 | `somfy_device.json?<dotted-node>` | 200 | Per-node `LABEL`, `TYPE`, position, limits |
 | `somfy_controls.json` | 200 | Web-UI tiles; not useful |
-| `somfy_devices.json` | **403** | — |
-| `somfy_presets.json?<node>` | **403** | — |
+| `somfy_devices.json` | 403 → **200 after login** | Every node's label in **one** request |
+| `somfy_presets.json?<node>` | 403 → **200 after login** | 16 preset slots per node |
 
-**PROTO-07 is closed as not worth pursuing.** The plural `somfy_devices.json` returns 403
-*with* HTTP basic auth as well as without, as does `somfy_presets.json`, so they are gated
-by something other than the telnet credentials — presumably a session from the settings
-page. The singular `somfy_device.json?<node>` needs no auth and returns strictly more per
-node, so there is nothing to gain.
+### The 403 endpoints unlock via a pilot.htm session
+
+Not HTTP basic auth — that fails. `pilot.htm` authenticates with a plain GET and treats
+200 as success:
+
+```
+GET /password.cgi?VERIFY=<web password>
+```
+
+**No cookie is set**, so the session is keyed to the client IP. The web password is a
+*separate* credential from the telnet one.
+
+Afterwards:
+
+- **`somfy_devices.json`** returns all 49 nodes as `{"NODE": "13.6E.A5", "LABEL": "..."}`
+  in a single request — including the two nodes whose per-node `somfy_device.json` never
+  responded. It carries only NODE and LABEL, plus a `JOG` setting
+  (`{"STEP": 50, "TYPE": "pulses"}`); the per-node endpoint remains richer.
+- **`somfy_presets.json?<node>`** returns 16 `PERCENT` and 16 `PULSE` slots. **All 16 are
+  empty on all 49 nodes of the reference bus**, so presets are not in use and there is no
+  `sdn.move.ip` feature worth building against them.
+
+**Not adopted.** Discovery already names all 49 correctly from the unauthenticated
+per-node endpoint plus a settled telnet read. Switching would trade ~49 discovery-time
+requests for one, at the cost of a second credential in the config flow for every user and
+IP-bound session handling. Documented so the option is known, not taken.
 
 ## 7. Wire quirks
 
