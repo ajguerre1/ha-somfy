@@ -101,7 +101,7 @@ async def main() -> int:
                     reply = await probe.request(
                         "sdn.status.position", {"targetID": node_id}, timeout=8.0
                     )
-                    telnet: Any = reply["result"] if "result" in reply else f"ERR {reply}"
+                    telnet: Any = reply.get("result", f"ERR {reply}")
                 except Exception as exc:
                     telnet = f"{type(exc).__name__}"
 
