@@ -73,6 +73,33 @@ async def async_fetch_group_names(hass: HomeAssistant, host: str) -> dict[int, s
     return names
 
 
+async def async_fetch_gateway_info(hass: HomeAssistant, host: str) -> dict[str, str]:
+    """Read firmware version and serial from the gateway's about endpoint.
+
+    Purely cosmetic -- it populates the device page. Unauthenticated, and any
+    failure just leaves those fields blank.
+    """
+    try:
+        session = async_get_clientsession(hass)
+        async with session.get(
+            f"http://{host}/about.json", timeout=aiohttp.ClientTimeout(total=GROUP_NAMES_TIMEOUT)
+        ) as response:
+            if response.status != 200:
+                return {}
+            payload = await response.json(content_type=None)
+    except (aiohttp.ClientError, TimeoutError, ValueError) as err:
+        _LOGGER.debug("Could not read gateway info: %s", err)
+        return {}
+
+    if not isinstance(payload, dict):
+        return {}
+    return {
+        key: str(payload[key]).strip()
+        for key in ("VERSION_FW", "SERIAL_NO")
+        if isinstance(payload.get(key), str) and payload[key].strip()
+    }
+
+
 def _dotted(node_id: str) -> str:
     """136E33 -> 13.6E.33, the node form the HTTP endpoint expects."""
     return ".".join(node_id[index : index + 2] for index in range(0, len(node_id), 2))
@@ -163,12 +190,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # only created implicitly by the group entities' device_info, the motors are
     # added first and reference a parent that does not exist yet -- which Home
     # Assistant currently warns about and will eventually reject.
+    gateway_info = await async_fetch_gateway_info(hass, host)
     dr.async_get(hass).async_get_or_create(
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, entry.entry_id)},
         name="Somfy UAI+",
         manufacturer=MANUFACTURER,
         model=GATEWAY_MODEL,
+        sw_version=gateway_info.get("VERSION_FW"),
+        serial_number=gateway_info.get("SERIAL_NO"),
         configuration_url=f"http://{host}/",
     )
 

@@ -128,6 +128,37 @@ no guarantee that replies from all devices will be received."
 mark it unavailable because a node missed a single pass. Persist the known node set and require
 several consecutive misses before considering a node gone.
 
+## 6b. Method prefix and the HTTP surface
+
+**The `sdn.` prefix is optional** (PROTO-09, settled 2026-07-29). Both spellings return
+identical payloads:
+
+| Prefixed | Bare | Result |
+|---|---|---|
+| `sdn.status.info` | `status.info` | `{"name": "RoomE Bed B/O", "type": "Sonesse 50DC"}` |
+| `sdn.status.position` | `status.position` | `100` |
+| `sdn.group.get` | `group.get` | `["010114"]` |
+
+Usable as a fallback, though there is no reason to switch. The integration keeps the
+prefixed form.
+
+**HTTP endpoints**, all unauthenticated GETs:
+
+| Path | Status | Use |
+|---|---|---|
+| `about.json` | 200 | Firmware version and serial — populates the gateway device |
+| `somfy_groups.json` | 200 | Group names; the only source for them |
+| `somfy_device.json?<dotted-node>` | 200 | Per-node `LABEL`, `TYPE`, position, limits |
+| `somfy_controls.json` | 200 | Web-UI tiles; not useful |
+| `somfy_devices.json` | **403** | — |
+| `somfy_presets.json?<node>` | **403** | — |
+
+**PROTO-07 is closed as not worth pursuing.** The plural `somfy_devices.json` returns 403
+*with* HTTP basic auth as well as without, as does `somfy_presets.json`, so they are gated
+by something other than the telnet credentials — presumably a session from the settings
+page. The singular `somfy_device.json?<node>` needs no auth and returns strictly more per
+node, so there is nothing to gain.
+
 ## 7. Wire quirks
 
 - Auth prompts (`User:`, `Password:`) are **not newline-terminated** — read until substring, not until newline.

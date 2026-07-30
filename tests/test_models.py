@@ -11,7 +11,10 @@ import pytest
 from custom_components.ha_somfy.uai.models import (
     ALL_GROUP_ID,
     Capability,
+    GroupInfo,
+    Node,
     classify_type,
+    find_name_group_conflicts,
     group_id_for_index,
     group_index_for_id,
     parse_position,
@@ -154,6 +157,133 @@ def test_missing_names_fall_back_to_node_id() -> None:
     names = unique_slug_names([("40FCFC", None), ("40FD76", "")])
     assert names["40FCFC"] == "40FCFC"
     assert names["40FD76"] == "40FD76"
+
+
+# ---------------------------------------------------------------------------
+# Name vs group cross-check
+# ---------------------------------------------------------------------------
+
+
+def _groups(*pairs: tuple[str, str]) -> dict[str, GroupInfo]:
+    return {gid: GroupInfo(group_id=gid, index=int(gid[4:], 16), name=name) for gid, name in pairs}
+
+
+REAL_GROUPS = _groups(
+    ("010102", "RoomA B/O"),
+    ("010103", "RoomA SH"),
+    ("010105", "RoomB SH"),
+    ("01010A", "RoomI SH"),
+    ("010112", "RoomD SH"),
+)
+
+
+def _node(node_id: str, name: str, group: str) -> Node:
+    return Node(node_id=node_id, name=name, groups=[group])
+
+
+def test_a_name_pointing_at_another_group_is_flagged() -> None:
+    """The real case this exists for.
+
+    Node 136E33 once reported the name "RoomA B/O 2" while sitting in the
+    "RoomA SH" group. Both facts were in the captured data and nothing
+    compared them, so a false "duplicate name" finding was built on top.
+    """
+    conflicts = find_name_group_conflicts(
+        [_node("136E33", "RoomA B/O 2", "010103")], REAL_GROUPS
+    )
+
+    assert len(conflicts) == 1
+    assert conflicts[0].node_id == "136E33"
+    assert conflicts[0].own_group == "RoomA SH"
+    assert conflicts[0].suggested_group == "RoomA B/O"
+
+
+def test_whitespace_differences_are_not_flagged() -> None:
+    """ "RoomI SH 1" in the "RoomI SH" group is legitimate.
+
+    Six real Irismo motors are labelled this way; warning about them would be
+    noise that trains you to ignore the warning.
+    """
+    conflicts = find_name_group_conflicts(
+        [_node("40FD76", "RoomI SH 1", "01010A")], REAL_GROUPS
+    )
+    assert conflicts == []
+
+
+def test_a_name_resembling_no_other_group_is_not_flagged() -> None:
+    """ "RoomD Hall SH" in the "RoomD SH" group differs, but harmlessly.
+
+    It matches no *other* group, so there is nothing to suspect.
+    """
+    conflicts = find_name_group_conflicts(
+        [_node("40FCFC", "RoomD Hall SH", "010112")], REAL_GROUPS
+    )
+    assert conflicts == []
+
+
+def test_a_consistent_name_is_not_flagged() -> None:
+    conflicts = find_name_group_conflicts([_node("07752B", "RoomB SH 1", "010105")], REAL_GROUPS)
+    assert conflicts == []
+
+
+def test_nodes_without_a_name_or_group_are_skipped() -> None:
+    conflicts = find_name_group_conflicts(
+        [
+            Node(node_id="AAA", name=None, groups=["010105"]),
+            Node(node_id="BBB", name="RoomB SH 9", groups=[]),
+        ],
+        REAL_GROUPS,
+    )
+    assert conflicts == []
+
+
+def test_group_id_case_does_not_matter() -> None:
+    """Group IDs appear in both cases across the gateway's replies."""
+    conflicts = find_name_group_conflicts(
+        [_node("136E33", "RoomA B/O 2", "01010a".upper())], REAL_GROUPS
+    )
+    # 01010A is RoomI SH, so the RoomA B/O name is still a conflict.
+    assert len(conflicts) == 1
+
+
+def test_the_real_bus_produces_no_warnings(bus_inventory: dict) -> None:
+    """The current fleet must be quiet, or the check is useless in practice."""
+    nodes = [
+        Node(node_id=n["node_id"], name=n["name"], groups=n["groups"])
+        for n in bus_inventory["nodes"]
+    ]
+    groups: dict[str, GroupInfo] = {}
+    names = {
+        2: "RoomA B/O",
+        3: "RoomA SH",
+        4: "RoomB B/O",
+        5: "RoomB SH",
+        6: "RoomG B/O",
+        7: "RoomG SH",
+        8: "RoomH SH",
+        9: "RoomI B/O",
+        10: "RoomI SH",
+        11: "RoomJ B/O",
+        12: "RoomJ SH",
+        13: "RoomL B/O",
+        14: "RoomL SH",
+        15: "RoomM B/O",
+        16: "RoomM SH",
+        17: "RoomC B/O",
+        18: "RoomD SH",
+        19: "RoomE Bath SH",
+        20: "RoomE Bed B/O",
+        21: "RoomE Bed SH",
+        22: "RoomF Bath SH",
+        23: "RoomF Bed B/O",
+        24: "RoomF Bed SH",
+        25: "RoomK SH",
+    }
+    for index, name in names.items():
+        gid = group_id_for_index(index)
+        groups[gid] = GroupInfo(group_id=gid, index=index, name=name)
+
+    assert find_name_group_conflicts(nodes, groups) == []
 
 
 # ---------------------------------------------------------------------------
