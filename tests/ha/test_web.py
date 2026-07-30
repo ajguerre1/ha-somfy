@@ -226,3 +226,40 @@ async def test_a_node_the_gateway_will_not_serve_is_simply_absent(make_client) -
     client, _ = make_client(_Response(404, None))
 
     assert await client.async_get_labels([NODE]) == {}
+
+
+# ---------------------------------------------------------------------------
+# A stale session that does not announce itself (IRIS-04)
+# ---------------------------------------------------------------------------
+
+
+async def test_persistent_wrong_node_answers_trigger_a_re_login(make_client) -> None:
+    """The bug that made v0.3.0 fail silently on real hardware.
+
+    A dead session answers HTTP 200 with another node's payload, not 403. The
+    NODE guard rejects it correctly, but re-authenticating only on 403 meant
+    nothing ever looked like an auth failure -- so the client retried a dead
+    session forever and the blinds stayed unknown.
+    """
+    client, session = make_client(_Response(200, device(OTHER, "0 (0 %)")))
+
+    assert await client.async_get_position(NODE) is None
+    assert session.login_count >= 2, "a persistently rejected read must re-authenticate"
+
+
+async def test_a_failed_read_does_not_poison_the_next_one(make_client) -> None:
+    """Nine Irismo are read in sequence. If a dead session were inherited from
+    one node to the next, one bad read would take the whole fleet down."""
+    client, session = make_client(
+        _Response(200, device(OTHER, "0 (0 %)")),
+        _Response(200, device(OTHER, "0 (0 %)")),
+        _Response(200, device(OTHER, "0 (0 %)")),
+        _Response(200, device(OTHER, "0 (0 %)")),
+        _Response(200, device(OTHER, "0 (0 %)")),
+        _Response(200, device(NODE, "1000 (100 %)")),
+    )
+
+    assert await client.async_get_position(NODE) is None
+    before = session.login_count
+    assert await client.async_get_position(NODE) == 100
+    assert session.login_count > before, "the next read must start a fresh session"

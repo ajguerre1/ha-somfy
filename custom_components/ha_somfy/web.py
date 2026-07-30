@@ -13,7 +13,9 @@ awkward properties, and containing them here is this module's whole purpose:
 2. **It answers with the wrong node.** A request for one node sometimes returns
    another node's payload, or 404. The payload carries its own `NODE` field, so
    this is detectable, and detecting it is not optional: attributing one
-   blind's state to another is worse than reporting nothing.
+   blind's state to another is worse than reporting nothing. Note that a *stale
+   session* produces the same symptom rather than a clean 403, so a wrong-node
+   reply is ambiguous between "buffer lagging" and "not logged in".
 3. **Its position is a display string**, `"1000 (100 %)"`, whose leading number
    is on a different scale per motor family. See `parse_web_position`.
 """
@@ -32,6 +34,7 @@ from yarl import URL
 from .const import (
     WEB_FAILURES_BEFORE_WARNING,
     WEB_MAX_ATTEMPTS,
+    WEB_RELOGIN_AFTER,
     WEB_RETRY_DELAY,
     WEB_TIMEOUT,
 )
@@ -153,16 +156,35 @@ class SomfyWebClient:
         return device
 
     async def _async_read_with_retries(self, node_id: str) -> dict[str, Any] | None:
+        """Retry a read, re-authenticating if it keeps being rejected.
+
+        A stale session does **not** reliably answer 403. It can answer HTTP
+        200 carrying a different node's payload, which is indistinguishable
+        from the buffer lag this endpoint also has. Re-authenticating only on
+        403 therefore deadlocks: the guard rejects every reply, nothing ever
+        looks like an auth failure, and the client retries a dead session
+        forever. That is precisely how this failed on the reference system.
+
+        So after a couple of rejected reads, stop blaming the buffer and
+        assume the session.
+        """
         for attempt in range(WEB_MAX_ATTEMPTS):
             if not self._logged_in:
                 async with self._login_lock:
                     if not self._logged_in:
                         await self.async_login()
+
             device = await self._async_fetch_device(node_id)
             if device is not None:
                 return device
+
+            if attempt + 1 >= WEB_RELOGIN_AFTER:
+                self._logged_in = False
             if attempt < WEB_MAX_ATTEMPTS - 1:
                 await asyncio.sleep(WEB_RETRY_DELAY)
+
+        # Give the next read a fresh session rather than inheriting this one.
+        self._logged_in = False
         return None
 
     def _maybe_warn(self) -> None:
