@@ -17,6 +17,7 @@ from unittest.mock import patch
 
 import pytest
 
+from custom_components.ha_somfy.const import WEB_MAX_ATTEMPTS
 from custom_components.ha_somfy.web import SomfyWebClient
 
 HOST = "10.0.0.1"
@@ -160,7 +161,7 @@ async def test_giving_up_reports_unknown_rather_than_guessing(make_client) -> No
     client, session = make_client(_Response(404, None))
 
     assert await client.async_get_position(NODE) is None
-    assert len(session.device_urls) == 3  # WEB_MAX_ATTEMPTS
+    assert len(session.device_urls) == WEB_MAX_ATTEMPTS
 
 
 # ---------------------------------------------------------------------------
