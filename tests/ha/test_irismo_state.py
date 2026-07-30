@@ -212,3 +212,25 @@ async def test_a_client_that_has_ever_worked_stays_quiet(coordinator, caplog) ->
     real._maybe_warn()
 
     assert caplog.text == ""
+
+
+# ---------------------------------------------------------------------------
+# Setup cost (IRIS-05)
+# ---------------------------------------------------------------------------
+
+
+async def test_setup_does_not_sweep_every_label_over_http(hass) -> None:
+    """v0.3.1 read all 49 labels over HTTP at setup and became the slowest
+    integration on the system -- Home Assistant warned four times that it was
+    still waiting, and entities took about five minutes to appear.
+
+    It bought nothing. The double telnet read already names every node
+    correctly, and did so throughout the period when this HTTP path was
+    silently failing entirely.
+    """
+    import inspect
+
+    from custom_components.ha_somfy import async_setup_entry
+
+    source = inspect.getsource(async_setup_entry)
+    assert "async_get_labels" not in source
