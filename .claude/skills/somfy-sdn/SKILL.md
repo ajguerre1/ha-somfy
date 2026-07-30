@@ -40,6 +40,13 @@ dry-contact drapery motor with no SDN NodeType; it joins the bus through bridge 
 the gateway names *the bridge*. A classifier matching `irismo` matches zero Irismo motors. This is
 the finding that matters most — everything else is detail.
 
+**2b. "Refuses position over telnet" does not mean "has no state".** Every SDN Module node answers
+`sdn.status.position` with `-32600`, which reads like the end of the story. It is not: the gateway
+holds an open/closed value for them and serves it from `somfy_device.json`. Commanding one flips
+that value in **under two seconds** — quicker than a drape can travel — so it is *modelled from
+the last command*, not measured. That makes it correct for open/closed, never intermediate (only
+ever 0 or 1000), and blind to any other control path. Give such a motor state, but never a slider.
+
 **3. `bool` subclasses `int` in Python.** `{"result": false}` means *position currently unknown*.
 `isinstance(False, int)` is `True`, so a naive numeric check reads it as position 0 — a blind
 reported fully closed when nothing knows where it is. Reject `bool` before any numeric check.
@@ -81,12 +88,30 @@ field, and it is what catches a node whose name disagrees with where it actually
 | Path | Auth | Use |
 |---|---|---|
 | `somfy_groups.json` | none | group names — the only source |
-| `somfy_device.json?13.6E.A5` | none | per-node `LABEL`, `TYPE`, position |
 | `about.json` | none | firmware, serial |
+| `somfy_device.json?13.6E.A5` | **session** | per-node `LABEL`, `TYPE`, position |
 | `somfy_devices.json` | session | all labels in one request |
 
 Session auth is `GET /password.cgi?VERIFY=<web password>` — a **separate credential** from telnet,
-and it sets no cookie, so the session is bound to the client IP.
+and it sets no cookie, so the session is **bound to the client IP** and expires on its own.
+
+Three things about that endpoint will cost you a day each:
+
+- **Test auth from the machine that will run the code.** A workstation with the web UI open in a
+  browser already has a session, and scripts run there inherit it silently. That is how this
+  endpoint got recorded as unauthenticated, and why the integration's label fetching was dead in
+  production without anyone noticing.
+- **The login response proves nothing.** It answers 200 normally but can drop the connection while
+  still authenticating. Send it, ignore the result, and let the next read decide.
+- **Send the password unencoded.** Percent-encoding it is rejected with 403.
+
+**It answers with the wrong node.** A request for one node sometimes returns another node's
+payload, or 404. The payload carries its own `NODE` field — compare it against what you asked for
+and retry on mismatch. Over 11 nodes: all resolved within five attempts, two needed more than one.
+
+**`POSITION` is a display string on two different scales.** `"12406 (100 %)"` for a Sonesse is
+encoder pulses bounded by that motor's `LIMITS DOWN`; `"1000 (100 %)"` for an SDN Module is a fixed
+0–1000. Parse the parenthesised percentage. Never the leading number.
 
 ## Common mistakes
 
@@ -94,6 +119,9 @@ and it sets no cookie, so the session is bound to the client IP.
 |---|---|
 | Hardcoding `supported_features` | Dead slider on every non-positional motor |
 | Matching `irismo` | Matches nothing; all 9 Irismo misclassified as positional |
+| Reading `-32600` as "no state exists" | Irismo entities sit at `unknown` forever, though the gateway knows |
+| Trusting a payload without checking `NODE` | One blind's state silently shown on another |
+| Parsing the leading number in `POSITION` | 12406 read as a percentage |
 | Treating `false` as 0 | Blind reports fully closed at an unknown position |
 | Reading `info` once | Permanently wrong entity ID from a group-derived placeholder |
 | Dropping a node that missed one ping | Entities flicker to unavailable; discovery is a union over time, not a snapshot |
