@@ -25,6 +25,7 @@ from custom_components.ha_somfy.uai.client import (
     UaiConnectionError,
 )
 from custom_components.ha_somfy.uai.models import Capability
+from custom_components.ha_somfy.uai.protocol import MAX_REQUEST_ID, MIN_REQUEST_ID
 
 USER = "homeassistant"
 PASSWORD = "hunter2"
@@ -403,3 +404,39 @@ async def test_reconnects_after_the_gateway_drops_the_link(gateway: FakeGateway)
         assert gateway.connections >= 2
     finally:
         await c.async_disconnect()
+
+
+# ---------------------------------------------------------------------------
+# Request-id collision across telnet sessions (IRIS-09)
+# ---------------------------------------------------------------------------
+
+
+def test_request_ids_start_high_and_differ_per_connection() -> None:
+    """The gateway broadcasts replies to EVERY open telnet session.
+
+    Measured on the reference gateway: a connection that had sent only ids
+    5001-5003 received fourteen replies carrying ids 8703-8716 -- another
+    session's traffic, arriving on ours. Correlation is by id alone, because a
+    reply echoes neither the method nor the target, so a reply whose id happens
+    to match one of our pending requests would be accepted as ours and store
+    one motor's position on another.
+
+    A fixed base of 1000 made that inevitable rather than unlikely: polling 40
+    motors a minute sweeps the counter straight through the range other clients
+    use. Starting high and at an unpredictable point does not make collision
+    impossible, but it moves it from "a few hours" to "effectively never".
+    """
+    bases = {UaiClient("host", 23, "", "")._msg_id for _ in range(25)}
+
+    assert len(bases) > 1, "a fixed base collides with other sessions predictably"
+    assert all(base >= MIN_REQUEST_ID for base in bases)
+    assert all(base <= MAX_REQUEST_ID for base in bases)
+
+
+def test_ids_still_increase_within_one_connection() -> None:
+    """Whatever the base, ids must remain unique per connection."""
+    client = UaiClient("host", 23, "", "")
+    ids = [client._next_id() for _ in range(5)]
+
+    assert ids == sorted(ids)
+    assert len(set(ids)) == 5

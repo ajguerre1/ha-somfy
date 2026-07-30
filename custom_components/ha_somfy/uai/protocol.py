@@ -45,6 +45,24 @@ MOVEMENT_METHODS: Final = frozenset(
 # Target wildcard accepted by sdn.status.ping to enumerate the whole bus.
 TARGET_ALL: Final = "*"
 
+# -- request ids -----------------------------------------------------------
+#
+# The gateway broadcasts replies to EVERY open telnet session. Measured on the
+# reference gateway: a connection that had sent only ids 5001-5003 received
+# fourteen replies carrying ids 8703-8716 -- another session's traffic arriving
+# on ours.
+#
+# A reply echoes neither the method nor the target, only the id, so a foreign
+# reply whose id matches one of our pending requests is indistinguishable from
+# our own and would store one motor's position on another. Replies for ids we
+# never issued are already dropped; this range is about the exact-collision
+# case. A fixed base of 1000 made that a matter of hours, since polling 40
+# motors a minute sweeps the counter straight through the low range other
+# clients use. Starting high and at an unpredictable point does not make
+# collision impossible, but it moves it to effectively never.
+MIN_REQUEST_ID: Final = 100_000
+MAX_REQUEST_ID: Final = 900_000
+
 # Auth handshake. These prompts are NOT newline-terminated, so the transport
 # has to read until a substring rather than until a line ending.
 PROMPT_USER: Final = "User:"
