@@ -368,6 +368,26 @@ It also explains the "flaky HTTP" impression: the gateway allows **one web sessi
 a workstation probing it evicts Home Assistant and vice versa. With only Home Assistant using it,
 the endpoint is stable.
 
+### Independently confirmed against Control4
+
+The premise for this investigation was that Control4, Crestron, RTI, Elan and Lutron all show
+Irismo state over telnet alone. A Control4 CA-10 is connected to this same gateway on its own
+telnet credentials, so the claim was directly testable: **move an Irismo from Home Assistant and
+see whether Control4 notices.**
+
+It does not. RoomD SH was closed from Home Assistant; Control4 continued to show it open.
+
+That is decisive, because a locally-modelled state *cannot* know about a command it did not
+issue. Control4 is tracking what it sent, exactly as the gateway does internally — it is not
+reading state from anywhere. A second, independent implementation on the same hardware has the
+same blind spot, which turns "I could not find a method" into "there is no method".
+
+**Consequence, and it runs the other way from the original assumption:** this integration's Irismo
+state is *better* than Control4's, not worse. Reading the gateway's own record over HTTP means it
+picks up movements made by Control4, the web interface, or anything else. Control4's model goes
+stale the moment something else moves the blind, and nothing can fix that from either side — the
+data simply is not on telnet.
+
 **Conclusion: HTTP remains the only source of Irismo state.** Not for want of looking.
 
 ## 13. STOP works on an Irismo, and the gateway models it as 50 % (IRIS-08)
