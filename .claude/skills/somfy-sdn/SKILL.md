@@ -104,10 +104,19 @@ Three things about that endpoint will cost you a day each:
 - **The login response proves nothing.** It answers 200 normally but can drop the connection while
   still authenticating. Send it, ignore the result, and let the next read decide.
 - **Send the password unencoded.** Percent-encoding it is rejected with 403.
+- **One session at a time, bound to the client IP.** A second client logging in evicts the first,
+  so a probe run while the integration is polling will make the integration fail, and vice versa.
+  Do not debug both at once and conclude the endpoint is flaky.
 
 **It answers with the wrong node.** A request for one node sometimes returns another node's
 payload, or 404. The payload carries its own `NODE` field — compare it against what you asked for
 and retry on mismatch. Over 11 nodes: all resolved within five attempts, two needed more than one.
+
+> **A stale session produces the identical symptom.** It does *not* answer 403 — it answers 200
+> with someone else's payload. So "wrong node" is ambiguous between "buffer lagging" and "not
+> logged in", and a client that re-authenticates only on 403 will deadlock: the guard rejects
+> every reply, nothing ever looks like an auth failure, and it retries a dead session forever.
+> **Re-authenticate after N rejected reads, not on a status code.** This cost a release.
 
 **`POSITION` is a display string on two different scales.** `"12406 (100 %)"` for a Sonesse is
 encoder pulses bounded by that motor's `LIMITS DOWN`; `"1000 (100 %)"` for an SDN Module is a fixed
