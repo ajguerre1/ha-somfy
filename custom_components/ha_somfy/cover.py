@@ -62,9 +62,9 @@ async def async_setup_entry(
         [(node.node_id, node.name) for node in coordinator.nodes.values()]
     )
 
-    # Groups first: their device_info is the gateway, which is the `via_device`
-    # parent of every motor. The gateway is also registered explicitly during
-    # setup, so this ordering is belt and braces rather than the only guard.
+    # Groups and motors both declare the gateway as `via_device`. It is
+    # registered explicitly during setup, before any entity is added, so
+    # neither can reference a parent that does not exist yet (HA-06).
     entities: list[CoverEntity] = [
         SomfyGroupCover(coordinator, entry, group) for group in coordinator.groups.values()
     ]
