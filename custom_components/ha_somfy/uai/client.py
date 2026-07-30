@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import random
 from typing import Any, Final
 
 from .models import (
@@ -30,6 +31,7 @@ from .models import (
     parse_position,
 )
 from .protocol import (
+    MAX_REQUEST_ID,
     METHOD_GROUP_GET,
     METHOD_MOVE_DOWN,
     METHOD_MOVE_STOP,
@@ -38,6 +40,7 @@ from .protocol import (
     METHOD_STATUS_INFO,
     METHOD_STATUS_PING,
     METHOD_STATUS_POSITION,
+    MIN_REQUEST_ID,
     PROMPT_CONNECTED,
     PROMPT_PASSWORD,
     PROMPT_USER,
@@ -93,7 +96,10 @@ class UaiClient:
         self._writer: asyncio.StreamWriter | None = None
         self._reader_task: asyncio.Task | None = None
         self._pending: dict[int, asyncio.Future[Response]] = {}
-        self._msg_id = 1000
+        # Started at an unpredictable high point rather than a fixed base:
+        # the gateway broadcasts replies to every open telnet session, and a
+        # reply carries only an id. See MIN_REQUEST_ID.
+        self._msg_id = random.randrange(MIN_REQUEST_ID, MAX_REQUEST_ID)
         self._connect_lock = asyncio.Lock()
         self._write_lock = asyncio.Lock()
 
