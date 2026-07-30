@@ -95,4 +95,9 @@ Public remote `origin` → `ajguerre1/ha-somfy`. **After every local commit, pus
 Pause and confirm before pushing only when the push carries specific risk — secrets in the diff, a
 force-push, or rewriting already-pushed history.
 
+**This is a manual step, not a hook** (WORK-04). Automating it with `post-commit` was considered and
+rejected: an unconditional auto-push cannot make the judgment the previous sentence requires, and it
+would push a commit containing credentials before anyone could stop it. `.git/hooks/` is also
+untracked, so a hook would silently not exist in a fresh clone. Push deliberately instead.
+
 Releases are tagged semver; HACS offers updates from GitHub releases.
