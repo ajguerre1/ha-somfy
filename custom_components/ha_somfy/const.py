@@ -17,6 +17,21 @@ CONF_CAPABILITY_OVERRIDES: Final = "capability_overrides"
 CONF_MOTOR: Final = "motor"
 CONF_CAPABILITY: Final = "capability"
 
+# --- The gateway's web interface (IRIS-01) ---------------------------------
+#
+# A second, separate credential from the telnet one. Optional: without it the
+# integration works exactly as it did before, and motors with no telnet
+# position simply report no state. With it, Irismo nodes gain open/closed.
+CONF_WEB_PASSWORD: Final = "web_password"
+
+WEB_TIMEOUT: Final = 10
+
+# `somfy_device.json` intermittently answers with a different node's payload,
+# or 404. Measured over 11 nodes: all resolved within five attempts and only
+# two needed more than one, so three is comfortable headroom.
+WEB_MAX_ATTEMPTS: Final = 3
+WEB_RETRY_DELAY: Final = 0.3
+
 DEFAULT_POLL_INTERVAL: Final = 60
 MIN_POLL_INTERVAL: Final = 10
 MAX_POLL_INTERVAL: Final = 3600

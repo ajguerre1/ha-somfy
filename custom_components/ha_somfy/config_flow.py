@@ -27,6 +27,9 @@ from homeassistant.helpers.selector import (
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
+    TextSelector,
+    TextSelectorConfig,
+    TextSelectorType,
 )
 
 from .const import (
@@ -34,6 +37,7 @@ from .const import (
     CONF_CAPABILITY_OVERRIDES,
     CONF_MOTOR,
     CONF_POLL_INTERVAL,
+    CONF_WEB_PASSWORD,
     DEFAULT_POLL_INTERVAL,
     DOMAIN,
     MAX_POLL_INTERVAL,
@@ -50,6 +54,12 @@ STEP_USER_SCHEMA = vol.Schema(
         vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
         vol.Optional(CONF_USERNAME, default=""): str,
         vol.Optional(CONF_PASSWORD, default=""): str,
+        # Optional, and a *different* credential from the telnet one above:
+        # this is the web interface password. Without it, motors that telnet
+        # cannot read -- Irismo behind an SDN bridge -- report no state at all.
+        vol.Optional(CONF_WEB_PASSWORD, default=""): TextSelector(
+            TextSelectorConfig(type=TextSelectorType.PASSWORD)
+        ),
     }
 )
 
@@ -156,7 +166,38 @@ class SomfyOptionsFlow(OptionsFlow):
         self._motor: str | None = None
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        return self.async_show_menu(step_id="init", menu_options=["polling", "capability"])
+        return self.async_show_menu(step_id="init", menu_options=["polling", "capability", "web"])
+
+    # -- web interface credential ------------------------------------------
+
+    async def async_step_web(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Set or clear the web interface password.
+
+        Kept in the options rather than the entry data so an integration set up
+        before this existed can gain the feature without being removed and
+        re-added. Submitting an empty box clears it and turns the feature off.
+        """
+        if user_input is not None:
+            return self._save(
+                {CONF_WEB_PASSWORD: str(user_input.get(CONF_WEB_PASSWORD, "")).strip()}
+            )
+
+        schema = vol.Schema(
+            {
+                vol.Optional(CONF_WEB_PASSWORD, default=""): TextSelector(
+                    TextSelectorConfig(type=TextSelectorType.PASSWORD)
+                )
+            }
+        )
+        return self.async_show_form(
+            step_id="web",
+            data_schema=schema,
+            description_placeholders={"state": "set" if self._web_password() else "not set"},
+        )
+
+    def _web_password(self) -> str:
+        entry = self.config_entry
+        return str(entry.options.get(CONF_WEB_PASSWORD) or entry.data.get(CONF_WEB_PASSWORD) or "")
 
     # -- polling -----------------------------------------------------------
 

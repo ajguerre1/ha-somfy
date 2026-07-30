@@ -22,6 +22,7 @@ from custom_components.ha_somfy.const import (
     CONF_CAPABILITY_OVERRIDES,
     CONF_MOTOR,
     CONF_POLL_INTERVAL,
+    CONF_WEB_PASSWORD,
     DOMAIN,
 )
 from custom_components.ha_somfy.uai.models import OVERRIDE_AUTO, Capability
@@ -66,11 +67,11 @@ async def _set_poll_interval(hass, entry, seconds: int) -> dict:
 # ---------------------------------------------------------------------------
 
 
-async def test_the_flow_offers_polling_and_capability(hass, entry) -> None:
+async def test_the_flow_offers_polling_capability_and_the_web_password(hass, entry) -> None:
     result = await hass.config_entries.options.async_init(entry.entry_id)
 
     assert result["type"] is FlowResultType.MENU
-    assert set(result["menu_options"]) == {"polling", "capability"}
+    assert set(result["menu_options"]) == {"polling", "capability", "web"}
 
 
 async def test_the_motor_list_comes_from_discovery(hass, entry, coordinator) -> None:
@@ -147,3 +148,44 @@ async def test_the_poll_interval_still_saves_on_its_own(hass, entry) -> None:
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["data"][CONF_POLL_INTERVAL] == 30
+
+
+# ---------------------------------------------------------------------------
+# The web interface credential (IRIS-01)
+# ---------------------------------------------------------------------------
+
+
+async def _set_web_password(hass, entry, password: str) -> dict:
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "web"}
+    )
+    return await hass.config_entries.options.async_configure(
+        result["flow_id"], {CONF_WEB_PASSWORD: password}
+    )
+
+
+async def test_the_web_password_can_be_added_after_setup(hass, entry) -> None:
+    """It lives in the options precisely so an integration installed before
+    this feature existed does not have to be removed and re-added."""
+    result = await _set_web_password(hass, entry, "webpw")
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_WEB_PASSWORD] == "webpw"
+
+
+async def test_clearing_it_turns_the_feature_off(hass, entry) -> None:
+    await _set_web_password(hass, entry, "webpw")
+
+    result = await _set_web_password(hass, entry, "")
+
+    assert result["data"][CONF_WEB_PASSWORD] == ""
+
+
+async def test_the_web_password_survives_the_other_options_steps(hass, entry) -> None:
+    await _set_web_password(hass, entry, "webpw")
+
+    result = await _set_poll_interval(hass, entry, 120)
+
+    assert result["data"][CONF_WEB_PASSWORD] == "webpw"
+    assert result["data"][CONF_POLL_INTERVAL] == 120

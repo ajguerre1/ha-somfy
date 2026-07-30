@@ -270,3 +270,37 @@ def test_overriding_one_member_lifts_its_whole_group(coordinator) -> None:
     coordinator.nodes[IRISMO_ID].capability = Capability.POSITIONAL
 
     assert CoverEntityFeature.SET_POSITION in group.supported_features
+
+
+# ---------------------------------------------------------------------------
+# Irismo open/closed state (IRIS-01)
+# ---------------------------------------------------------------------------
+
+
+def test_an_irismo_reports_state_without_gaining_a_slider(coordinator) -> None:
+    """Knowing open from closed is not the same as being able to travel to
+    43 %. The bridge still cannot do the latter, so the feature set must not
+    move an inch."""
+    cover = _motor(coordinator, IRISMO_ID)
+
+    coordinator.nodes[IRISMO_ID].position = 100  # gateway 100 = closed
+    assert cover.is_closed is True
+    assert CoverEntityFeature.SET_POSITION not in cover.supported_features
+    assert cover.assumed_state is True
+
+    coordinator.nodes[IRISMO_ID].position = 0
+    assert cover.is_closed is False
+    assert CoverEntityFeature.SET_POSITION not in cover.supported_features
+
+
+def test_an_all_irismo_group_stops_reading_unknown(coordinator) -> None:
+    """The reported symptom: `cover.somfy_uai_roomd_sh` sat at `unknown`
+    forever because group position filtered on capability, and an Irismo is
+    non-positional however much state it reports."""
+    group = SomfyGroupCover(coordinator, coordinator.entry, coordinator.groups["01010A"])
+    assert group.is_closed is None
+
+    coordinator.nodes[IRISMO_ID].position = 100
+
+    assert group.is_closed is True
+    assert CoverEntityFeature.SET_POSITION not in group.supported_features

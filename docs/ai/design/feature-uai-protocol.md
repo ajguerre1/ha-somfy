@@ -266,6 +266,70 @@ more reliable field.
   responding to an observed collision, but nothing prevents an installer from
   labelling two motors identically, and a collision would silently drop an entity.
 
+## 11. Irismo open/closed state exists — over HTTP only (IRIS-01)
+
+**Settled 2026-07-30 on live hardware, with one commanded movement.**
+
+Telnet refuses `sdn.status.position` for all 9 SDN Module nodes, and §1 read that as "an Irismo
+has no state to report". That was too strong. The gateway *does* hold an open/closed value for
+them; it just does not serve it over telnet.
+
+| Source | SDN Module `40FCFC` |
+|---|---|
+| Telnet `sdn.status.position` | `{"error":-32600}` — refused, all 9 nodes |
+| HTTP `somfy_device.json?40.FC.FC` → `POSITION` | **`"1000 (100 %)"`** |
+
+### It is modelled from the last command, not measured
+
+Opening `RoomD SH` via Home Assistant flipped `40FCFC` from `1000 (100 %)` to `0 (0 %)`
+**within 2 seconds** — far quicker than the drape can physically travel — while two control
+Irismo nodes stayed at `1000`. Closing it returned it to `1000`.
+
+So the 1811129 bridge still has no feedback. What changed is our understanding of the *gateway*:
+it records the state it commanded. That makes the value
+
+- **correct** for open/closed, since these blinds are only ever driven by the gateway;
+- **never intermediate** — only ever 0 or 1000, so there is no slider to build;
+- **assumed**, in exactly the sense `assumed_state` means. It cannot see a blind moved by any
+  other means.
+
+### Only the percentage is comparable
+
+The raw number is not one scale:
+
+| Node | Type | Raw | Percent |
+|---|---|---|---|
+| `40FCFC` | SDN Module | `1000` | 100 % |
+| `136EA5` | Sonesse 50DC | `12406` | 100 % |
+| `136DAB` | Sonesse 50DC | `18753` | 100 % |
+
+Sonesse raw values are **encoder pulses**, bounded by that motor's `LIMITS DOWN`. SDN Module uses
+a fixed 0–1000. **Parse the parenthesised percentage; never the leading number.**
+
+### The endpoint needs a session, and lies occasionally
+
+`somfy_device.json` returns **403** without a `pilot.htm` session (`GET /password.cgi?VERIFY=`),
+which is IP-bound and expires.
+
+> **This invalidates a claim in §6b.** That table lists the per-node endpoint as unauthenticated.
+> The probes that established it ran from the owner's own workstation, which had a live browser
+> session against the web UI — the scripts were riding it without knowing. **Home Assistant is a
+> different IP and has never had a session**, so `async_fetch_device_labels` has been returning
+> nothing in production and every name has come from the double telnet read. Harmless, because
+> the telnet fallback works, but it was invisible.
+
+It is also transiently wrong. A request for one node can return **another node's payload**, or
+404. Measured over the 9 Irismo plus 2 Sonesse: 11/11 resolved within 5 attempts, 2 needed a
+second. The payload carries its own `NODE` field, so this is detectable — **compare `NODE`
+against what was asked for and retry on mismatch.** Attributing one blind's state to another
+would be worse than showing none.
+
+### No telnet alternative
+
+Probed `sdn.status.{detail,state,limits,node,all,motor,percent,pulses}` and `system.listmethods`.
+All return `-32600` or `-32602` while `sdn.status.position` answers normally for a Sonesse in the
+same session. HTTP is the only route.
+
 ## 9. Consequences for the capability classifier
 
 Replacing the design drafted during planning:
