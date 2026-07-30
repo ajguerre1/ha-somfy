@@ -19,10 +19,12 @@ WebSocket passthrough. So:
 | Step | Owner | Status |
 |---|---|---|
 | 1. One device per group | code | **done** — v0.4.0 |
-| 2. Rename HA Somfy entities to the Homebridge IDs | owner, in the UI | pending |
-| 3. Assign rooms | owner, in the UI | pending |
-| 4. Move Homebridge entities aside to `*_2` | owner, in the UI | pending |
-| 5. Fix what entity_id inheritance does not cover | code/MCP | pending |
+| 4. Move Homebridge entities aside to `*_2` | owner, in the UI | **done** — 24/24 |
+| 2. Rename HA Somfy entities to the Homebridge IDs | owner, in the UI | **done** — 24/24 |
+| 3. Assign rooms | owner, in the UI | **done** — 24/24, 0 unassigned |
+| 5. Fix what entity_id inheritance does not cover | code/MCP | pending — MIGRATE-09 |
+
+Listed in execution order, which is not the order they were requested in: 4 has to precede 2.
 
 Editing `.storage/core.entity_registry` directly was considered and rejected: Home Assistant holds
 that file in memory and rewrites it, so it would require stopping HA — registry surgery on a house
@@ -54,14 +56,14 @@ Work one row at a time, left to right.
 | 7 | RoomH | `cover.roomh_shades` | `cover.somfy_uai_roomh_sh` | RoomH SH |
 | 8 | RoomI | `cover.roomi_blackouts` | `cover.somfy_uai_roomi_b_o` | RoomI B/O **(Irismo)** |
 | 9 | RoomI | `cover.roomi_drapes` | `cover.somfy_uai_roomi_sh` | RoomI SH **(Irismo)** |
-| 10 | RoomN | `cover.roomj_blackouts` | `cover.somfy_uai_roomj_b_o` | RoomJ B/O |
-| 11 | RoomN | `cover.roomj_shades` | `cover.somfy_uai_roomj_sh` | RoomJ SH |
+| 10 | RoomJ † | `cover.roomj_blackouts` | `cover.somfy_uai_roomj_b_o` | RoomJ B/O |
+| 11 | RoomJ † | `cover.roomj_shades` | `cover.somfy_uai_roomj_sh` | RoomJ SH |
 | 12 | RoomL | `cover.rooml_bed_blackouts` | `cover.somfy_uai_rooml_b_o` | RoomL B/O |
 | 13 | RoomL | `cover.rooml_bed_shades` | `cover.somfy_uai_rooml_sh` | RoomL SH |
 | 14 | RoomM | `cover.roomm_blackouts` | `cover.somfy_uai_roomm_b_o` | RoomM B/O |
 | 15 | RoomM | `cover.roomm_shades` | `cover.somfy_uai_roomm_sh` | RoomM SH |
 | 16 | RoomC | `cover.roomc_blackout` | `cover.somfy_uai_roomc_b_o` | RoomC B/O |
-| 17 | 1F Hallway | `cover.roomd_hallway_drapes` | `cover.somfy_uai_roomd_sh` | RoomD SH **(Irismo)** |
+| 17 | RoomD Living † | `cover.roomd_hallway_drapes` | `cover.somfy_uai_roomd_sh` | RoomD SH **(Irismo)** |
 | 18 | RoomE Bath | `cover.roome_bath_shade` | `cover.somfy_uai_roome_bath_sh` | RoomE Bath SH |
 | 19 | RoomE Bed | `cover.roome_bed_blackout` | `cover.somfy_uai_roome_bed_b_o` | RoomE Bed B/O |
 | 20 | RoomE Bed | `cover.roome_bed_shade` | `cover.somfy_uai_roome_bed_sh` | RoomE Bed SH |
@@ -70,9 +72,15 @@ Work one row at a time, left to right.
 | 23 | RoomF Bed | `cover.roomf_bed_shade` | `cover.somfy_uai_roomf_bed_sh` | RoomF Bed SH |
 | 24 | RoomK | `cover.roomk_shade` | `cover.somfy_uai_roomk_sh` | RoomK SH |
 
-Rooms are the areas the Homebridge entities are in today, read from the live registry on
-2026-07-30. As of v0.4.0 each group is its own device, so **assign the device to the area** and the
-entity follows.
+Rooms are where the owner assigned them, verified live on 2026-07-30 — all 24 devices carry an
+area and none is left unassigned. As of v0.4.0 each group is its own device, so the device carries
+the area and the entity follows.
+
+† **Three deliberately differ from where Homebridge had them**, confirmed by the owner. The two
+RoomJ groups sat in *RoomN* despite their names, and `RoomD Hallway Drapes` sat
+in *1F Hallway* though the drape is in the roomd living room. These are corrections of
+long-standing Homebridge mis-assignments, not migration artifacts — worth recording so nobody
+later "fixes" them back by copying the old areas.
 
 ## What is left for me afterwards
 
