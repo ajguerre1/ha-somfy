@@ -56,6 +56,11 @@ two nodes answered `false`, and both were physically faulty; all 38 healthy posi
 returned a number. Treat it as "inspect this motor", never as "this motor has no position".
 Demoting a Sonesse on one bad reading makes its feature set flap between polls.
 
+**4b. `false` is also the normal reply to a movement command.** `sdn.move.up`, `.down` and `.stop`
+all answer `{"result":false}` on success. Do not read that as failure — check for an `error` key
+instead. And `sdn.move.stop` *does* work on an SDN Module; the gateway then models that motor at
+the midpoint (50 %), which is how a stopped Irismo reports.
+
 **5. The first `sdn.status.info` for a node can return a placeholder** synthesised from its group
 membership (`"RoomI SH 1"` instead of `"RoomI SH 1"`). The query itself triggers the real
 read; a second call returns the truth. If entity IDs derive from the name, a first-read capture
@@ -72,6 +77,13 @@ becomes a permanently wrong ID. Read twice, and prefer the HTTP `LABEL` where av
    artefact of one site's commissioning order.
 
 Errors come back as a **bare integer** with no `result` key: `{"error":-32600,"id":1046}`.
+
+> **Telnet replies are broadcast to every open session.** A connection that had sent only ids
+> 5001-5003 received fourteen replies carrying ids 8703-8716 — another client's traffic. Since a
+> reply echoes only the `id`, never the method or target, a foreign reply matching a pending
+> request is indistinguishable from your own and will store one motor's state on another. **Start
+> request ids at a large random offset**, not a fixed base: a counter from 1000 sweeps straight
+> through the range other clients use.
 
 ## Groups
 
@@ -135,7 +147,9 @@ encoder pulses bounded by that motor's `LIMITS DOWN`; `"1000 (100 %)"` for an SD
 | Reading `info` once | Permanently wrong entity ID from a group-derived placeholder |
 | Dropping a node that missed one ping | Entities flicker to unavailable; discovery is a union over time, not a snapshot |
 | Assuming the bus is slow | It is not — 149 requests in 5.0 s, mean 0.03 s, zero retries |
-| Assuming `local_push` | Zero unsolicited notifications in 149 requests; `local_polling` is honest |
+| Assuming `local_push` | Zero unsolicited notifications, measured with nothing moving and re-confirmed during commanded movement; `local_polling` is honest |
+| Correlating replies by a low, fixed id counter | Another session's reply accepted as yours — one blind's state on another |
+| Probing the web interface while the integration runs | One web session at a time; each evicts the other, which reads as "flaky HTTP" |
 
 ## Position polarity
 

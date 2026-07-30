@@ -330,6 +330,63 @@ Probed `sdn.status.{detail,state,limits,node,all,motor,percent,pulses}` and `sys
 All return `-32600` or `-32602` while `sdn.status.position` answers normally for a Sonesse in the
 same session. HTTP is the only route.
 
+## 12. Telnet cannot report Irismo state — and one thing it does instead (IRIS-07)
+
+**Settled 2026-07-30.** Other control systems (Control4, Crestron, RTI, Elan, Lutron) integrate
+Irismo behind SDN bridges using the telnet credentials alone and display open/closed state, which
+is good reason to think a route exists that IRIS-01 missed. Five hypotheses, all tested, all
+negative:
+
+| Hypothesis | Result |
+|---|---|
+| Position needs repeated polling, as `sdn.status.info` does for names | 8 reads per node, `-32600` every time |
+| `sdn.status.position` accepts a `groupID`, as `sdn.status.info` does | `-32602` — the method takes no group |
+| `sdn.status.info` returns more fields for an SDN Module | Only `{name, type}`, identical in shape to a Sonesse |
+| An HTTP read primes the gateway, then telnet answers | Still `-32600` |
+| Another read method exists (`status.level/value/get/report/percentage`) | All `-32600` |
+| A raw SDN passthrough on another port | Only 23 and 80 are open |
+| The gateway *pushes* state when a motor is commanded | No — see below |
+
+The last one was the most promising, because PERF-04's "zero unsolicited notifications" was
+measured during a query-only probe with **nothing moving**. Repeating it while commanding a motor
+produced 14 unexpected lines — but they were not notifications.
+
+### The gateway broadcasts replies to every telnet session (IRIS-09)
+
+Those 14 lines carried ids **8703-8716**, sequential, on a connection that had sent only
+5001-5003. They were replies to *another session's* requests — Home Assistant's poll cycle —
+arriving on ours. **The telnet interface is not session-isolated.**
+
+This matters more than the failed hypotheses. A reply echoes neither the method nor the target,
+only the id, so a foreign reply whose id matches one of our pending requests is indistinguishable
+from our own and would store one motor's position on another. Replies for ids we never issued were
+already dropped; the exposure was the exact-collision case, and a fixed base of `1000` made it a
+matter of hours, since polling 40 motors a minute sweeps the counter straight through the low range
+other clients use. Request ids now start at an unpredictable point in 100,000-900,000.
+
+It also explains the "flaky HTTP" impression: the gateway allows **one web session at a time**, so
+a workstation probing it evicts Home Assistant and vice versa. With only Home Assistant using it,
+the endpoint is stable.
+
+**Conclusion: HTTP remains the only source of Irismo state.** Not for want of looking.
+
+## 13. STOP works on an Irismo, and the gateway models it as 50 % (IRIS-08)
+
+`sdn.move.stop` addressed to an SDN Module returns `{"result":false}` — **identical to
+`sdn.move.up` and `sdn.move.down`**, both of which demonstrably work. On this gateway `false` is
+the ordinary acknowledgement for a movement command, not a failure, and the client already reads it
+as success (`not response.is_error`).
+
+Verified end to end on `40FCFC`: close, stop after 4 s of travel, and the entity settled at
+
+```
+state=open  current_position=50  is_closed=False  assumed_state=True  supported_features=11
+```
+
+So the gateway models a stopped Irismo at the midpoint, exactly as the owner reported, and the
+existing web read plus fast-follow already surfaces it within seconds. **No code change was
+required for stop** — it was working before this investigation began.
+
 ## 9. Consequences for the capability classifier
 
 Replacing the design drafted during planning:
