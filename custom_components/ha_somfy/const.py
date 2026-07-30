@@ -10,6 +10,13 @@ GATEWAY_MODEL: Final = "Connect UAI+"
 
 CONF_POLL_INTERVAL: Final = "poll_interval"
 
+# Per-motor capability overrides, keyed by node ID. Absent means "trust
+# detection", which is the case for every node on the reference bus -- see
+# CAP-02 and `apply_capability_override`.
+CONF_CAPABILITY_OVERRIDES: Final = "capability_overrides"
+CONF_MOTOR: Final = "motor"
+CONF_CAPABILITY: Final = "capability"
+
 DEFAULT_POLL_INTERVAL: Final = 60
 MIN_POLL_INTERVAL: Final = 10
 MAX_POLL_INTERVAL: Final = 3600
