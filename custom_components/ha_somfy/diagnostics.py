@@ -42,6 +42,10 @@ async def async_get_config_entry_diagnostics(
             "connected": coordinator.client.connected,
             "position_polarity_inverted": GATEWAY_POSITION_IS_INVERTED,
         },
+        # Whether the second, optional source is working. Without this a
+        # configured-but-broken web client is indistinguishable from one that
+        # was never configured, which is exactly how it failed the first time.
+        "web": coordinator.web.health if coordinator.web is not None else {"configured": False},
         "summary": {
             "node_count": len(coordinator.nodes),
             "group_count": len(coordinator.groups),

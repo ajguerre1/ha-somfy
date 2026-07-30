@@ -29,8 +29,19 @@ WEB_TIMEOUT: Final = 10
 # `somfy_device.json` intermittently answers with a different node's payload,
 # or 404. Measured over 11 nodes: all resolved within five attempts and only
 # two needed more than one, so three is comfortable headroom.
-WEB_MAX_ATTEMPTS: Final = 3
+WEB_MAX_ATTEMPTS: Final = 5
 WEB_RETRY_DELAY: Final = 0.3
+
+# Rejected reads before assuming the session is stale rather than the
+# buffer merely lagging. A dead session does not reliably answer 403 -- it
+# can answer 200 with another node's payload -- so waiting for a 403 to
+# trigger re-authentication never fires. See _async_read_with_retries.
+WEB_RELOGIN_AFTER: Final = 2
+
+# Consecutive whole-read failures, with no success ever, before saying so at
+# WARNING level. One poll of nine Irismo nodes is nine reads, so this fires
+# on the second cycle rather than instantly on a transient stumble.
+WEB_FAILURES_BEFORE_WARNING: Final = 3
 
 DEFAULT_POLL_INTERVAL: Final = 60
 MIN_POLL_INTERVAL: Final = 10

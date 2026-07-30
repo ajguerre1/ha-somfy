@@ -163,3 +163,52 @@ async def test_reading_state_does_not_make_an_irismo_positional(coordinator, web
     await coordinator._async_update_data()
 
     assert coordinator.nodes[IRISMO_ID].capability is Capability.NON_POSITIONAL
+
+
+# ---------------------------------------------------------------------------
+# Diagnosability
+# ---------------------------------------------------------------------------
+#
+# This feature shipped without any of the below and failed silently on the
+# owner's system: every failure path logged at debug, on-disk logging was off,
+# and there was no way to tell a wrong password from an unreachable endpoint.
+# Working out why cost far more than these tests do.
+
+
+async def test_a_configured_but_broken_web_client_says_so(coordinator, web, caplog) -> None:
+    from custom_components.ha_somfy.web import SomfyWebClient
+
+    real = SomfyWebClient(coordinator.hass, "10.0.0.1", "webpw")
+    real._last_login = "HTTP 403"
+    real._last_error = "HTTP 403 (no session)"
+    real._reads = 3
+    real._failures = 3
+    real._maybe_warn()
+
+    assert "web interface password is configured" in caplog.text
+    assert "HTTP 403" in caplog.text
+
+
+async def test_it_only_says_so_once(coordinator, caplog) -> None:
+    """A warning per poll cycle would be its own kind of noise."""
+    from custom_components.ha_somfy.web import SomfyWebClient
+
+    real = SomfyWebClient(coordinator.hass, "10.0.0.1", "webpw")
+    real._reads, real._failures = 3, 3
+    real._maybe_warn()
+    caplog.clear()
+    real._reads, real._failures = 30, 30
+    real._maybe_warn()
+
+    assert caplog.text == ""
+
+
+async def test_a_client_that_has_ever_worked_stays_quiet(coordinator, caplog) -> None:
+    from custom_components.ha_somfy.web import SomfyWebClient
+
+    real = SomfyWebClient(coordinator.hass, "10.0.0.1", "webpw")
+    real._succeeded = True
+    real._reads, real._failures = 30, 29
+    real._maybe_warn()
+
+    assert caplog.text == ""
