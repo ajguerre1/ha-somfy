@@ -175,3 +175,98 @@ async def test_state_is_written_only_when_something_changed(hass, coordinator) -
     coordinator.nodes[SONESSE_ID].position = 50
     cover._handle_coordinator_update()
     assert writes == 2
+
+
+# ---------------------------------------------------------------------------
+# Entity attributes (TEST-01)
+# ---------------------------------------------------------------------------
+#
+# These attributes ride along with every state write, and every state write
+# reaches ~48 wall panels. So the assertion that earns its keep is not what the
+# attributes contain but that they stay *still* while a motor moves.
+
+
+def test_a_motor_publishes_its_identity_and_group_membership(coordinator) -> None:
+    attrs = _motor(coordinator, IRISMO_ID).extra_state_attributes
+
+    assert attrs["node_id"] == IRISMO_ID
+    assert attrs["motor_type"] == "SDN Module"
+    assert attrs["capability"] == "non_positional"
+    assert attrs["groups"] == ["01010A"]
+
+
+def test_a_group_publishes_its_address_and_members(coordinator) -> None:
+    group = SomfyGroupCover(coordinator, coordinator.entry, coordinator.groups["010114"])
+    attrs = group.extra_state_attributes
+
+    assert attrs["group_id"] == "010114"
+    assert attrs["group_index"] == 20
+    assert attrs["members"] == [SONESSE_ID]
+    assert attrs["member_count"] == 1
+
+
+def test_motor_attributes_do_not_move_when_the_blind_does(coordinator) -> None:
+    """The fan-out guard. A blind travelling from 0 to 100 writes state many
+    times; if any attribute tracked position, each of those writes would carry a
+    changed attribute payload to every panel."""
+    cover = _motor(coordinator, SONESSE_ID)
+    before = cover.extra_state_attributes
+
+    for position in (10, 45, 90, 100):
+        coordinator.nodes[SONESSE_ID].position = position
+        assert cover.extra_state_attributes == before
+
+
+def test_group_attributes_do_not_move_when_its_members_do(coordinator) -> None:
+    group = SomfyGroupCover(coordinator, coordinator.entry, coordinator.groups["010114"])
+    before = group.extra_state_attributes
+
+    coordinator.nodes[SONESSE_ID].position = 55
+
+    assert group.extra_state_attributes == before
+
+
+def test_a_vanished_motor_publishes_no_attributes(coordinator) -> None:
+    """A node dropped after three missed discovery passes must not raise while
+    its entity is still registered."""
+    cover = _motor(coordinator, SONESSE_ID)
+    del coordinator.nodes[SONESSE_ID]
+
+    assert cover.extra_state_attributes == {}
+
+
+def test_a_vanished_group_publishes_no_attributes(coordinator) -> None:
+    group = SomfyGroupCover(coordinator, coordinator.entry, coordinator.groups["010114"])
+    del coordinator.groups["010114"]
+
+    assert group.extra_state_attributes == {}
+
+
+# ---------------------------------------------------------------------------
+# Manual capability override (CAP-02)
+# ---------------------------------------------------------------------------
+
+
+def test_an_overridden_motor_gains_the_position_slider(coordinator) -> None:
+    """The escape hatch working end to end.
+
+    The coordinator applies the override to the node, so the entity needs no
+    knowledge of overrides at all -- it keeps deriving features from capability,
+    which is what CAP-03 guards.
+    """
+    coordinator.nodes[IRISMO_ID].capability = Capability.POSITIONAL
+
+    cover = _motor(coordinator, IRISMO_ID)
+    assert CoverEntityFeature.SET_POSITION in cover.supported_features
+    assert cover.assumed_state is False
+
+
+def test_overriding_one_member_lifts_its_whole_group(coordinator) -> None:
+    """A group follows its least capable member, so an override on the member
+    has to reach the group entity too."""
+    group = SomfyGroupCover(coordinator, coordinator.entry, coordinator.groups["01010A"])
+    assert CoverEntityFeature.SET_POSITION not in group.supported_features
+
+    coordinator.nodes[IRISMO_ID].capability = Capability.POSITIONAL
+
+    assert CoverEntityFeature.SET_POSITION in group.supported_features

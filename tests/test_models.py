@@ -10,9 +10,11 @@ import pytest
 
 from custom_components.ha_somfy.uai.models import (
     ALL_GROUP_ID,
+    OVERRIDE_AUTO,
     Capability,
     GroupInfo,
     Node,
+    apply_capability_override,
     classify_type,
     find_name_group_conflicts,
     group_id_for_index,
@@ -321,3 +323,57 @@ def test_the_false_position_node_keeps_its_capability(bus_inventory: dict) -> No
     assert node["position"] is False
     assert classify_type(node["type"]) is Capability.POSITIONAL
     assert parse_position(node["position"]) is None
+
+
+# ---------------------------------------------------------------------------
+# CAP-02: manual capability override
+# ---------------------------------------------------------------------------
+#
+# Detection has been right on all 49 nodes of the reference bus, so this exists
+# for other people's hardware -- a motor type the classifier has never seen.
+# The override is the escape hatch, which means its failure modes matter more
+# than its happy path: a bad value in the options must never break the entity.
+
+
+def test_no_override_leaves_detection_untouched() -> None:
+    assert (
+        apply_capability_override(Capability.NON_POSITIONAL, OVERRIDE_AUTO)
+        is Capability.NON_POSITIONAL
+    )
+    assert apply_capability_override(Capability.POSITIONAL, None) is Capability.POSITIONAL
+
+
+def test_a_motor_can_be_forced_positional() -> None:
+    """The case that matters: hardware that reports position but is classified
+    non-positional because its type string is unrecognised."""
+    assert (
+        apply_capability_override(Capability.NON_POSITIONAL, Capability.POSITIONAL)
+        is Capability.POSITIONAL
+    )
+
+
+def test_a_motor_can_be_forced_non_positional() -> None:
+    """The inverse: a motor whose type string looks positional but which has no
+    working feedback, leaving a slider that never resolves."""
+    assert (
+        apply_capability_override(Capability.POSITIONAL, Capability.NON_POSITIONAL)
+        is Capability.NON_POSITIONAL
+    )
+
+
+def test_an_unknown_node_can_be_resolved_by_hand() -> None:
+    """UNKNOWN is precisely the state a human is best placed to settle."""
+    assert (
+        apply_capability_override(Capability.UNKNOWN, Capability.POSITIONAL)
+        is Capability.POSITIONAL
+    )
+
+
+@pytest.mark.parametrize("garbage", ["", "  ", "yes", "POSITIONAL", "unknown", 7, None, True])
+def test_a_meaningless_override_falls_back_to_detection(garbage: object) -> None:
+    """Options survive downgrades and hand-editing, so a value that is not a
+    real capability must be ignored rather than raise. `unknown` is included
+    deliberately: forcing a node to UNKNOWN would strip its controls, which is
+    never what someone reaching for this setting wants.
+    """
+    assert apply_capability_override(Capability.POSITIONAL, garbage) is Capability.POSITIONAL
