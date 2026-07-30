@@ -145,7 +145,7 @@ async def main() -> int:
         print()
         print("=== D. HTTP read first, then telnet position ===")
         node = IRISMO[0]
-        print(f"  HTTP says {node} = {http_position(host, node, secrets.get('web_password',''))}")
+        print(f"  HTTP says {node} = {http_position(host, node, secrets.get('web_password', ''))}")
         for attempt in (1, 2, 3):
             print(
                 f"  telnet attempt {attempt}: "
