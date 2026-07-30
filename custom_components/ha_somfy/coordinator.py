@@ -39,6 +39,7 @@ from .uai.models import (
     find_name_group_conflicts,
     group_index_for_id,
 )
+from .web import SomfyWebClient
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,6 +53,7 @@ class SomfyCoordinator(DataUpdateCoordinator[dict[str, Node]]):
         entry: ConfigEntry,
         client: UaiClient,
         poll_interval: int,
+        web: SomfyWebClient | None = None,
     ) -> None:
         super().__init__(
             hass,
@@ -61,6 +63,9 @@ class SomfyCoordinator(DataUpdateCoordinator[dict[str, Node]]):
             config_entry=entry,
         )
         self.client = client
+        # Optional second source. Without it the integration behaves exactly as
+        # it did before: motors telnet cannot read simply report no state.
+        self.web = web
         self.nodes: dict[str, Node] = {}
         self.groups: dict[str, GroupInfo] = {}
         # Nodes currently being followed at the fast interval, and the single
@@ -207,14 +212,14 @@ class SomfyCoordinator(DataUpdateCoordinator[dict[str, Node]]):
         nodes just commanded are followed, so a moving blind updates promptly
         without the other 40-odd motors generating any extra traffic.
 
-        Non-positional nodes are skipped entirely -- an Irismo has no position
-        to read, so following it would be pure noise.
+        A node whose state cannot be read is skipped entirely, so following it
+        never generates a request. When no web password is configured that is
+        still every Irismo on the bus.
         """
         targets = {
             node_id
             for node_id in node_ids
-            if (node := self.nodes.get(node_id)) is not None
-            and node.capability is Capability.POSITIONAL
+            if (node := self.nodes.get(node_id)) is not None and self._is_readable(node)
         }
         if not targets:
             return
@@ -244,10 +249,14 @@ class SomfyCoordinator(DataUpdateCoordinator[dict[str, Node]]):
 
                     previous = node.position
                     try:
-                        node.position = await self.client.async_get_position(node_id)
+                        reading = await self._async_read_position(node)
                     except UaiError as err:
                         _LOGGER.debug("Position poll failed for %s: %s", node_id, err)
                         continue
+                    if reading is None and node.capability is not Capability.POSITIONAL:
+                        # See _async_update_data: a missed web read is noise.
+                        continue
+                    node.position = reading
 
                     if node.position != previous:
                         changed = True
@@ -268,14 +277,41 @@ class SomfyCoordinator(DataUpdateCoordinator[dict[str, Node]]):
             self._moving.clear()
             self.async_update_listeners()
 
+    # -- reading a node's position ----------------------------------------
+
+    def _web_ready(self) -> bool:
+        return self.web is not None and self.web.configured
+
+    def _is_readable(self, node: Node) -> bool:
+        """Can this node's state be read at all?
+
+        Position-capable motors answer over telnet. Everything else -- the nine
+        Irismo behind SDN bridges -- answers only from the web interface, and
+        only when a web password was supplied.
+        """
+        return node.capability is Capability.POSITIONAL or self._web_ready()
+
+    async def _async_read_position(self, node: Node) -> int | None:
+        if node.capability is Capability.POSITIONAL:
+            return await self.client.async_get_position(node.node_id)
+        if self._web_ready():
+            return await self.web.async_get_position(node.node_id)
+        return None
+
     async def _async_update_data(self) -> dict[str, Node]:
-        """Refresh position for position-capable motors only."""
+        """Refresh state for every node whose state can be read."""
         for node in self.nodes.values():
-            if node.capability is not Capability.POSITIONAL:
-                # Irismo has nothing to report; asking would be noise.
-                continue
-            try:
-                node.position = await self.client.async_get_position(node.node_id)
-            except UaiError as err:
-                _LOGGER.debug("Position poll failed for %s: %s", node.node_id, err)
+            if node.capability is Capability.POSITIONAL:
+                try:
+                    node.position = await self.client.async_get_position(node.node_id)
+                except UaiError as err:
+                    _LOGGER.debug("Position poll failed for %s: %s", node.node_id, err)
+            elif self._web_ready():
+                position = await self.web.async_get_position(node.node_id)
+                # A failed web read keeps the last known state rather than
+                # blanking it. The value only changes when the gateway is
+                # commanded, so a miss here is transport noise, not news -- and
+                # flicking to "unknown" and back would reach every wall panel.
+                if position is not None:
+                    node.position = position
         return self.nodes

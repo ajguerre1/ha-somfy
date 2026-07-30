@@ -14,10 +14,13 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN, GATEWAY_POSITION_IS_INVERTED
+from .const import CONF_WEB_PASSWORD, DOMAIN, GATEWAY_POSITION_IS_INVERTED
 from .coordinator import SomfyCoordinator
 
-TO_REDACT = {CONF_PASSWORD, CONF_USERNAME}
+# The web password can live in either data or options, so both are redacted.
+# Options were previously dumped verbatim, which was safe only for as long as
+# nothing secret was kept there.
+TO_REDACT = {CONF_PASSWORD, CONF_USERNAME, CONF_WEB_PASSWORD}
 
 
 async def async_get_config_entry_diagnostics(
@@ -33,7 +36,7 @@ async def async_get_config_entry_diagnostics(
     return {
         "entry": {
             "data": async_redact_data(dict(entry.data), TO_REDACT),
-            "options": dict(entry.options),
+            "options": async_redact_data(dict(entry.options), TO_REDACT),
         },
         "gateway": {
             "connected": coordinator.client.connected,
