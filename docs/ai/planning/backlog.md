@@ -98,15 +98,6 @@ Real-world conditions the integration must tolerate. None of these are code defe
 | WORK-04 | **Git `post-commit` auto-push hook is not version-controlled** (`.git/hooks/` isn't tracked). Re-add if this repo is cloned fresh. | L | open | Hook present in any working copy in use |
 | WORK-05 | **Icon works in Home Assistant. The HACS store list cannot be fixed from this repo — parked.** Confirmed on the live system after installing v0.1.1: the icon renders in *Add Integration*, proving `brand/icon.png` and the local API work. It does **not** render in the HACS store list. Cause: HACS ships its own bundled frontend pinned to an **older** `homeassistant-frontend` submodule (`3ffbd43`) whose `brandsUrl()` builds a CDN URL directly — `https://brands.home-assistant.io/_/{domain}/dark_icon.png` — with no local-API path and no token. That URL returns the grey placeholder for `ha_somfy`, verified. Current HA frontend instead returns `/api/brands/integration/{domain}/…`, which is why HA's own UI works. **No custom integration created after the brands repo closed to them can have a HACS store-list icon** until HACS updates its vendored frontend. Cosmetic only, and confined to that one list. | L | parked | HACS updates its bundled frontend; nothing actionable here |
 
-## 8. Parked
-
-Deliberately deferred — revisit only if the trade-off changes.
-
-| ID | Item | Why parked |
-|----|------|-----------|
-| PARK-01 | Contribute fixes upstream to `peter-dolkens/somfy-uai` | Repo is unlicensed and unmaintained (one commit, two unanswered issues, both filed by us). Revisit if it gains a license and a maintainer. |
-| PARK-02 | Support raw SDN / RS-485 without the UAI+ gateway | The gateway works and does the SDN framing. Only relevant if the UAI+ is ever removed. |
-
 ## Completed
 
 | ID | Item | Done | Evidence |
@@ -167,6 +158,7 @@ Deliberately deferred — revisit only if the trade-off changes.
 | Date | Change |
 |------|--------|
 | 2026-07-29 | Created. Seeded with 30 items from the project plan and the live gateway reconnaissance (ports open, 25 group names read, `somfy_devices.json` 403, 1811129 confirmed on all 9 Irismo). |
+| 2026-07-30 | **Parked section removed**, at the owner's decision. PARK-01 was contributing fixes upstream to `peter-dolkens/somfy-uai`, dropped because that repo has one commit, no license, and two unanswered issues — there is nothing to contribute to. PARK-02 was driving raw SDN over RS-485 without the gateway, dropped because the UAI+ works and performs the framing; the protocol details remain in the design doc should it ever be wanted. Neither blocked anything. |
 | 2026-07-30 | **WORK-02 deleted** (rotate the gateway password), at the owner's decision. Both credentials are confirmed absent from git and live only in the gitignored `scripts/secrets.local.json` and the HA config entry, which is where a config-entry password belongs. The device is LAN-only, so the threat model requires an attacker already inside the network and the session store. Rotating would have broken the probe scripts and the HA entry for no meaningful gain. **The standing rule is unchanged: credentials are never committed.** |
 | 2026-07-29 | **PERF-03, HW-04, PROTO-07 and PROTO-09 all closed.** PERF-03 verified live by the owner. HW-04 added as a deliberately narrow check — it warns only when a name matches *another* existing group, so the current fleet produces zero warnings while the real `136E33` case would still fire. PROTO-09: the `sdn.` prefix is optional, both forms return identical payloads. PROTO-07: closed as not worth pursuing, since `somfy_devices.json` is 403 even with basic auth and the per-node endpoint returns more anyway. Gateway device now carries firmware and serial from `about.json`. |
 | 2026-07-29 | **Brand icon mechanism corrected.** The `custom_components/ha_somfy/brand/` folder was already the right answer: since HA 2026.3 custom integrations serve their own brand images locally and `home-assistant/brands` no longer accepts them (PR #10871 closed on that basis). The grey placeholder in the HACS store list is the CDN fallback for a not-yet-installed integration, not a defect. Added WORK-05/06; released v0.1.1 so the install picks up the redrawn icon. |
