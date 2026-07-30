@@ -30,7 +30,13 @@ from .const import (
     MOVING_SETTLE_READS,
 )
 from .uai.client import UaiClient, UaiError
-from .uai.models import Capability, GroupInfo, Node, group_index_for_id
+from .uai.models import (
+    Capability,
+    GroupInfo,
+    Node,
+    find_name_group_conflicts,
+    group_index_for_id,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -112,6 +118,25 @@ class SomfyCoordinator(DataUpdateCoordinator[dict[str, Node]]):
                 )
 
         self.groups = self._build_groups(group_names or {})
+        self._warn_on_name_group_conflicts()
+
+    def _warn_on_name_group_conflicts(self) -> None:
+        """Flag any node whose name points at a group it is not a member of.
+
+        This mismatch is the only thing that would have caught a stale name the
+        gateway once reported, and it was sitting unexamined in the captured
+        data at the time. Cheap to check now that both fields are already here.
+        """
+        for conflict in find_name_group_conflicts(list(self.nodes.values()), self.groups):
+            _LOGGER.warning(
+                "Node %s is named %r but belongs to group %r, not %r. "
+                "Check its label in the UAI+ web interface -- its Home Assistant "
+                "name may be wrong.",
+                conflict.node_id,
+                conflict.name,
+                conflict.own_group,
+                conflict.suggested_group,
+            )
 
     def _build_groups(self, group_names: dict[int, str]) -> dict[str, GroupInfo]:
         """Derive groups from per-node membership.
