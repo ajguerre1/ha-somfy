@@ -90,6 +90,35 @@ def classify_type(type_string: str | None) -> Capability:
     return Capability.UNKNOWN
 
 
+# --- Manual capability override (CAP-02) -----------------------------------
+#
+# The escape hatch for hardware this classifier has never seen. An override
+# value is simply the `Capability` it forces; `auto` means "no override, trust
+# detection" and is the absence of an entry rather than a stored state.
+OVERRIDE_AUTO: Final = "auto"
+
+
+def apply_capability_override(detected: Capability, override: Any) -> Capability:
+    """Resolve a detected capability against a user-supplied override.
+
+    The input is treated as untrusted. Options are JSON on disk, survive
+    version changes, and can be hand-edited, while this sits on the path to
+    every entity in the integration -- so anything unrecognised degrades to
+    automatic behaviour instead of raising.
+
+    `UNKNOWN` is refused along with the nonsense. It is a legitimate
+    `Capability`, but forcing a node into it would strip the entity's controls
+    entirely, which is never what someone reaching for a manual override wants.
+    """
+    if not isinstance(override, str) or override == OVERRIDE_AUTO:
+        return detected
+    try:
+        forced = Capability(override)
+    except ValueError:
+        return detected
+    return detected if forced is Capability.UNKNOWN else forced
+
+
 def parse_position(raw: Any) -> int | None:
     """Return a 0-100 position, or None when the gateway did not give one.
 

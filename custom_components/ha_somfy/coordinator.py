@@ -23,6 +23,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import (
+    CONF_CAPABILITY_OVERRIDES,
     DOMAIN,
     MAX_MISSED_DISCOVERIES,
     MOVING_POLL_INTERVAL,
@@ -34,6 +35,7 @@ from .uai.models import (
     Capability,
     GroupInfo,
     Node,
+    apply_capability_override,
     find_name_group_conflicts,
     group_index_for_id,
 )
@@ -117,8 +119,41 @@ class SomfyCoordinator(DataUpdateCoordinator[dict[str, Node]]):
                     MAX_MISSED_DISCOVERIES,
                 )
 
+        self._apply_capability_overrides()
         self.groups = self._build_groups(group_names or {})
         self._warn_on_name_group_conflicts()
+
+    def _apply_capability_overrides(self) -> None:
+        """Let the owner correct a motor this integration classified wrongly.
+
+        Applied here rather than in the entity because capability decides more
+        than `supported_features`: it decides whether the node is polled at all,
+        and whether it is followed while moving. An override that only reached
+        the entity would produce a position slider on a motor nothing reads.
+
+        Reapplied on every discovery, since each pass rebuilds capability from
+        the gateway's type string and would otherwise quietly undo the setting.
+        """
+        entry = self.config_entry
+        overrides = entry.options.get(CONF_CAPABILITY_OVERRIDES) if entry else None
+        if not isinstance(overrides, dict):
+            return
+
+        for node_id, override in overrides.items():
+            node = self.nodes.get(node_id)
+            if node is None:
+                # The motor may have left the bus while its override lingers.
+                continue
+            resolved = apply_capability_override(node.capability, override)
+            if resolved is not node.capability:
+                _LOGGER.info(
+                    "Capability override for %s (%s): %s -> %s",
+                    node_id,
+                    node.name,
+                    node.capability,
+                    resolved,
+                )
+                node.capability = resolved
 
     def _warn_on_name_group_conflicts(self) -> None:
         """Flag any node whose name points at a group it is not a member of.

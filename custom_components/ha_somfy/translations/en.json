@@ -30,10 +30,43 @@
     "step": {
       "init": {
         "title": "HA Somfy options",
+        "menu_options": {
+          "polling": "Polling",
+          "capability": "Motor capability"
+        }
+      },
+      "polling": {
+        "title": "Polling",
         "description": "How often to poll motors that report position. Motors without position feedback are never polled.",
         "data": {
           "poll_interval": "Poll interval"
         }
+      },
+      "capability": {
+        "title": "Motor capability",
+        "description": "Correct a motor whose capability was detected wrongly.\n\nCapability is normally read from the motor type the gateway reports, so this is only needed for hardware this integration does not recognise. Changing it reloads the integration.",
+        "data": {
+          "motor": "Motor"
+        }
+      },
+      "motor": {
+        "title": "Capability",
+        "description": "{motor}\n\nAutomatic uses the type the gateway reports. Reports position adds the position slider and starts polling this motor. No position feedback removes the slider and stops polling it.",
+        "data": {
+          "capability": "Capability"
+        }
+      }
+    },
+    "abort": {
+      "no_motors": "No motors are loaded for this gateway yet. Try again once the integration has finished starting."
+    }
+  },
+  "selector": {
+    "capability": {
+      "options": {
+        "auto": "Automatic (use the detected motor type)",
+        "positional": "Reports position",
+        "non_positional": "No position feedback"
       }
     }
   }
