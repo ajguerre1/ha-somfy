@@ -8,7 +8,11 @@
           "host": "Host",
           "port": "Port",
           "username": "Username",
-          "password": "Password"
+          "password": "Password",
+          "web_password": "Web interface password (optional)"
+        },
+        "data_description": {
+          "web_password": "A different credential from the telnet one above -- it is the password for the gateway's own web page. Without it, motors that cannot report position over telnet (Irismo behind an SDN bridge) will show no open/closed state."
         }
       },
       "confirm": {
@@ -32,7 +36,8 @@
         "title": "HA Somfy options",
         "menu_options": {
           "polling": "Polling",
-          "capability": "Motor capability"
+          "capability": "Motor capability",
+          "web": "Web interface password"
         }
       },
       "polling": {
@@ -54,6 +59,13 @@
         "description": "{motor}\n\nAutomatic uses the type the gateway reports. Reports position adds the position slider and starts polling this motor. No position feedback removes the slider and stops polling it.",
         "data": {
           "capability": "Capability"
+        }
+      },
+      "web": {
+        "title": "Web interface password",
+        "description": "Currently {state}.\n\nThe gateway's web page has its own password, separate from the telnet one. It is what lets this integration read open/closed state for motors without position feedback, such as Irismo behind an SDN bridge.\n\nLeave the box empty to clear it and turn that off.",
+        "data": {
+          "web_password": "Web interface password"
         }
       }
     },
