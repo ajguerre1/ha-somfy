@@ -32,6 +32,12 @@ WEB_TIMEOUT: Final = 10
 WEB_MAX_ATTEMPTS: Final = 5
 WEB_RETRY_DELAY: Final = 0.3
 
+# Rejected reads before assuming the session is stale rather than the
+# buffer merely lagging. A dead session does not reliably answer 403 -- it
+# can answer 200 with another node's payload -- so waiting for a 403 to
+# trigger re-authentication never fires. See _async_read_with_retries.
+WEB_RELOGIN_AFTER: Final = 2
+
 # Consecutive whole-read failures, with no success ever, before saying so at
 # WARNING level. One poll of nine Irismo nodes is nine reads, so this fires
 # on the second cycle rather than instantly on a transient stumble.
