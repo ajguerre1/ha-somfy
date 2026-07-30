@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from homeassistant.components.cover import CoverDeviceClass, CoverEntityFeature
 
+from custom_components.ha_somfy.const import DOMAIN
 from custom_components.ha_somfy.cover import SomfyGroupCover, SomfyMotorCover
 from custom_components.ha_somfy.uai.models import Capability, GroupInfo, Node
 
@@ -304,3 +305,48 @@ def test_an_all_irismo_group_stops_reading_unknown(coordinator) -> None:
 
     assert group.is_closed is True
     assert CoverEntityFeature.SET_POSITION not in group.supported_features
+
+
+# ---------------------------------------------------------------------------
+# One device per group (MIGRATE-06)
+# ---------------------------------------------------------------------------
+
+
+def test_each_group_is_its_own_device(coordinator) -> None:
+    """All 24 groups used to hang off the single gateway device, which forced
+    every group entity into whatever area the gateway was in. A group is the
+    thing people actually operate and assign to a room."""
+    roomd = SomfyGroupCover(coordinator, coordinator.entry, coordinator.groups["01010A"])
+    guest = SomfyGroupCover(coordinator, coordinator.entry, coordinator.groups["010114"])
+
+    assert roomd.device_info["identifiers"] != guest.device_info["identifiers"]
+    assert roomd.device_info["name"] == "RoomI SH"
+    assert guest.device_info["name"] == "RoomE Bed B/O"
+
+
+def test_a_group_device_hangs_off_the_gateway(coordinator) -> None:
+    """The gateway stays as the hub, so the device page still shows the whole
+    installation as one tree."""
+    group = SomfyGroupCover(coordinator, coordinator.entry, coordinator.groups["01010A"])
+
+    assert group.device_info["via_device"] == (DOMAIN, coordinator.entry.entry_id)
+    assert group.device_info["identifiers"] != {(DOMAIN, coordinator.entry.entry_id)}
+
+
+def test_a_group_keeps_its_unique_id(coordinator) -> None:
+    """The load-bearing assertion for existing installs.
+
+    unique_id is what ties an entity to its registry entry. Changing it while
+    moving the device would orphan all 24 entities -- new IDs, lost history,
+    and every dashboard reference silently pointing at nothing.
+    """
+    group = SomfyGroupCover(coordinator, coordinator.entry, coordinator.groups["01010A"])
+
+    assert group.unique_id == f"{coordinator.entry.entry_id}_group_01010A"
+
+
+def test_motors_still_have_their_own_devices(coordinator) -> None:
+    motor = _motor(coordinator, SONESSE_ID)
+
+    assert motor.device_info["identifiers"] == {(DOMAIN, SONESSE_ID)}
+    assert motor.device_info["via_device"] == (DOMAIN, coordinator.entry.entry_id)

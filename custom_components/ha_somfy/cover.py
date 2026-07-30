@@ -26,7 +26,6 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import (
     CLOSED_POSITION_THRESHOLD,
     DOMAIN,
-    GATEWAY_MODEL,
     MANUFACTURER,
     gateway_to_ha_position,
     ha_to_gateway_position,
@@ -247,13 +246,22 @@ class SomfyGroupCover(_SomfyCoverBase):
         super().__init__(coordinator, entry)
         self._group_id = group.group_id
         self._attr_name = group.name
+        # UNCHANGED, deliberately. The unique_id is what ties an entity to its
+        # registry entry, so keeping it means existing installs re-parent onto
+        # the new device below rather than losing their entity IDs, history and
+        # any references pointing at them.
         self._attr_unique_id = f"{entry.entry_id}_group_{group.group_id}"
         self._attr_device_class = self._group_device_class()
+        # One device per group, rather than all 24 hanging off the gateway.
+        # A group is the thing people actually operate and assign to a room --
+        # hanging them all off one hub device forced every group entity into
+        # whatever area the gateway was in.
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name="Somfy UAI+",
+            identifiers={(DOMAIN, f"group_{group.group_id}")},
+            name=group.name,
             manufacturer=MANUFACTURER,
-            model=GATEWAY_MODEL,
+            model="Motor group",
+            via_device=(DOMAIN, entry.entry_id),
         )
 
     @property
