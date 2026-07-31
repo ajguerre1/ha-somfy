@@ -407,6 +407,40 @@ So the gateway models a stopped Irismo at the midpoint, exactly as the owner rep
 existing web read plus fast-follow already surfaces it within seconds. **No code change was
 required for stop** — it was working before this investigation began.
 
+## 14. Something outside this repo now depends on §11–§13 (2026-07-30)
+
+Nine wall-panel cards render an Irismo's state from a **partial-position band**, not from
+`entity.state`:
+
+```js
+const p = entity.attributes.current_position;
+if (p != null && p > 0 && p < 100) return 'Stopped';
+if (entity.state == 'open') return 'Open';
+if (entity.state == 'closed') return 'Closed';
+```
+
+**The band test must run first.** `CLOSED_POSITION_THRESHOLD` is 2, so a cover at 50 is `open` as
+far as Home Assistant is concerned. Ordered the other way, a stopped blind renders "Open" and the
+Stopped branch is unreachable — the bug would look like a dead feature rather than a mistake.
+
+**The band is deliberate, not a loose `== 50`.** `SomfyGroupCover.current_cover_position` is
+`round(mean(member positions))`, and these cards address groups of 2 and 3 motors. When members
+report unevenly — one web read fails, or a member was commanded individually — the average lands on
+25/33/67/75. A strict equality test would blank the label at precisely the moment the user wants
+feedback. Any value strictly between the endpoints means *not fully at either end*, which for a
+device whose only states are open/closed/stopped is exactly "Stopped".
+
+This couples live dashboards to two things this document treats as findings rather than contracts:
+the group aggregation above, and the gateway's 50 % model from §13. **Changing either breaks the
+labels silently**, and the breakage appears on wall panels — nothing in `pytest` covers it.
+
+The same nine cards call `cover.stop_cover`. The four `rest_command.*_stop` entries that used to
+proxy stop through Homebridge at `192.168.1.60:49694` were deleted from `rest_commands.yaml` the
+same day, so the integration now owns Irismo stop end to end with no external hop.
+
+Affected dashboards: `wp-06`, `wp-07`, `wp-08`,
+`wp-10`, `wp-11`, `wp-36`, `wp-37`.
+
 ## 9. Consequences for the capability classifier
 
 Replacing the design drafted during planning:
