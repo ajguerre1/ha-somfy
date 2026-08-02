@@ -193,9 +193,7 @@ def test_a_name_pointing_at_another_group_is_flagged() -> None:
     "RoomA SH" group. Both facts were in the captured data and nothing
     compared them, so a false "duplicate name" finding was built on top.
     """
-    conflicts = find_name_group_conflicts(
-        [_node("136E33", "RoomA B/O 2", "010103")], REAL_GROUPS
-    )
+    conflicts = find_name_group_conflicts([_node("136E33", "RoomA B/O 2", "010103")], REAL_GROUPS)
 
     assert len(conflicts) == 1
     assert conflicts[0].node_id == "136E33"
@@ -209,9 +207,7 @@ def test_whitespace_differences_are_not_flagged() -> None:
     Six real Irismo motors are labelled this way; warning about them would be
     noise that trains you to ignore the warning.
     """
-    conflicts = find_name_group_conflicts(
-        [_node("40FD76", "RoomI SH 1", "01010A")], REAL_GROUPS
-    )
+    conflicts = find_name_group_conflicts([_node("40FD76", "RoomI SH 1", "01010A")], REAL_GROUPS)
     assert conflicts == []
 
 
@@ -220,9 +216,7 @@ def test_a_name_resembling_no_other_group_is_not_flagged() -> None:
 
     It matches no *other* group, so there is nothing to suspect.
     """
-    conflicts = find_name_group_conflicts(
-        [_node("40FCFC", "RoomD Hall SH", "010112")], REAL_GROUPS
-    )
+    conflicts = find_name_group_conflicts([_node("40FCFC", "RoomD Hall SH", "010112")], REAL_GROUPS)
     assert conflicts == []
 
 
