@@ -18,7 +18,7 @@ probe, and build entity features from actual capability. **Never reintroduce a h
 
 | | |
 |---|---|
-| Gateway | `192.168.1.50`, TCP 23 (telnet JSON-RPC) + 80 (web UI) |
+| Gateway | TCP 23 (telnet JSON-RPC) + 80 (web UI); address is in `scripts/secrets.local.json` |
 | Firmware | HW 04.04 / FW 02.03.11 |
 | Motors | 40 Sonesse (positional) + 9 Irismo w/ 1811129 (non-positional) |
 | Groups | 25, addressed `1.1.x`, names readable from `GET /somfy_groups.json` |
@@ -31,7 +31,7 @@ probe, and build entity features from actual capability. **Never reintroduce a h
   Write state only on actual change; poll only position-capable motors; keep the default
   interval at 60 s. A chatty coordinator is a regression, not a detail.
 - **Credentials never get committed.** Two distinct credential sets, neither ever in this repo:
-  *Somfy gateway* (`192.168.1.50`) user/password live in the HA config entry, mirrored for probe
+  *Somfy gateway* address and user/password live in the HA config entry, mirrored for probe
   scripts in the gitignored `scripts/secrets.local.json`; *Home Assistant* API/SSH access comes from
   the **global store** `~/.ha/.env` (`. ~/.ha/load.sh`, then `ssh ha` / `$HA_URL` / `$HA_TOKEN`) —
   see `~/.ha/README.md`. Never copy either into this repo. Raw probe captures are gitignored; only

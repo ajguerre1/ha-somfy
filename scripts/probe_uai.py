@@ -14,7 +14,7 @@ What this answers (see docs/ai/planning/backlog.md):
 
 Usage:
     python scripts/probe_uai.py                      # reads scripts/secrets.local.json
-    python scripts/probe_uai.py --host 192.168.1.50 --user U --password P
+    python scripts/probe_uai.py --host GATEWAY_IP --user U --password P
 """
 
 from __future__ import annotations
