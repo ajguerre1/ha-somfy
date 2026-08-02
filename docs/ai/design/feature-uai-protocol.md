@@ -438,6 +438,9 @@ The same nine cards call `cover.stop_cover`. The four `rest_command.*_stop` entr
 proxy stop through Homebridge at `192.168.1.60:49694` were deleted from `rest_commands.yaml` the
 same day, so the integration now owns Irismo stop end to end with no external hop.
 
+> `192.168.1.60` is a placeholder for reference only, not a real address — this repo is public and
+> carries no real network addresses. Only the port is meaningful here. See the note in `CLAUDE.md`.
+
 Affected dashboards: `wp-06`, `wp-07`, `wp-08`,
 `wp-10`, `wp-11`, `wp-36`, `wp-37`.
 
