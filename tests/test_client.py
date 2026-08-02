@@ -290,7 +290,7 @@ async def test_discovery_uses_the_second_name_read(gateway: FakeGateway) -> None
 
     On the reference bus every Irismo node first answered with its group's name
     plus a position index ("RoomI SH 1"), and only a second read returned
-    the device's real label ("RoomI SH 1"). Entity IDs come from the name
+    the device's real label ("RoomI Shades"). Entity IDs come from the name
     and are assigned once, so taking the first answer would bake in a wrong ID.
     """
     reads: dict[str, int] = {}
@@ -302,7 +302,7 @@ async def test_discovery_uses_the_second_name_read(gateway: FakeGateway) -> None
             target = params["targetID"]
             reads[target] = reads.get(target, 0) + 1
             # First read: group-derived placeholder. Second: the real label.
-            name = "RoomI SH 1" if reads[target] == 1 else "RoomI SH 1"
+            name = "RoomI SH 1" if reads[target] == 1 else "RoomI Shades"
             return json.dumps({"result": {"name": name, "type": "Sonesse 50DC"}, "id": msg_id})
         if method == "sdn.status.position":
             return json.dumps({"result": 0, "id": msg_id})
@@ -316,7 +316,7 @@ async def test_discovery_uses_the_second_name_read(gateway: FakeGateway) -> None
     finally:
         await c.async_disconnect()
 
-    assert nodes[0].name == "RoomI SH 1"
+    assert nodes[0].name == "RoomI Shades"
     assert reads[SONESSE_50] == 2
 
 
