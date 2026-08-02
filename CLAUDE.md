@@ -41,6 +41,17 @@ probe, and build entity features from actual capability. **Never reintroduce a h
   the **global store** `~/.ha/.env` (`. ~/.ha/load.sh`, then `ssh ha` / `$HA_URL` / `$HA_TOKEN`) —
   see `~/.ha/README.md`. Never copy either into this repo. Raw probe captures are gitignored; only
   sanitised fixtures are committed.
+- **This repo is public — no real names, ever.** Motor, group and entity names came off a live
+  bus and carried occupants' first names and a room-by-room layout of the house. Everything is
+  now neutral: **`RoomA`–`RoomP`**, plus bare `wp-NN` for wall panels. Never paste a fresh capture
+  in unsanitised, and never "restore" a real name to make a doc read better. The real mapping
+  lives in the gitignored `local/` directory. Applies equally to rooms, occupants, dashboards,
+  serial numbers and hostnames — not just addresses and credentials.
+  > The rename is **many-to-one** (a compound spelling and its spaced form both became one label). When
+  > sanitising further, check you have not collapsed a distinction a test depends on: doing so
+  > silently turned `test_discovery_uses_the_second_name_read` into a test that could no longer
+  > fail. Use `(?<![A-Za-z])token(?![A-Za-z])` boundaries so `craft_b_o` matches but `crafted`
+  > does not, and scope ambiguous words — `family` is a room here *and* appears in "motor family".
 - **No external runtime dependencies.** `manifest.json` keeps `requirements: []`; the client is
   vendored under `custom_components/ha_somfy/uai/`.
 
@@ -93,7 +104,11 @@ Shared SQLite DB at `~/.lifecycle-toolkit/memory.db`.
 
 - **Unit:** `pytest` with `pytest-homeassistant-custom-component`, replaying captured protocol
   fixtures. No hardware required.
-- **Lint:** `ruff`.
+- **Lint:** `ruff` — **upgrade before trusting it** (`pip install -U ruff`). CI runs `pip install
+  ruff`, so it always gets the latest; a stale local copy passes on rules that did not exist yet.
+  A local 0.7.4 reported clean while CI's 0.16.1 failed on `RUF034`.
+- **Run both ruff steps.** CI runs `ruff check .` *and* `ruff format --check .` and stops at the
+  first failure — so a green `check` can still hide a `format` failure you have not seen yet.
 - **CI:** hassfest + HACS validation + ruff + pytest on every push.
 - **Live:** movement is validated one motor at a time — one Sonesse, then one Irismo, then one
   group, then the fleet.
