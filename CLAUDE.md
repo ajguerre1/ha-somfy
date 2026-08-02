@@ -18,10 +18,15 @@ probe, and build entity features from actual capability. **Never reintroduce a h
 
 | | |
 |---|---|
-| Gateway | TCP 23 (telnet JSON-RPC) + 80 (web UI); address is in `scripts/secrets.local.json` |
+| Gateway | `192.168.1.50` (example only — see note below), TCP 23 (telnet JSON-RPC) + 80 (web UI) |
 | Firmware | HW 04.04 / FW 02.03.11 |
 | Motors | 40 Sonesse (positional) + 9 Irismo w/ 1811129 (non-positional) |
 | Groups | 25, addressed `1.1.x`, names readable from `GET /somfy_groups.json` |
+
+> **The gateway address above is a placeholder for reference only — not a real address.**
+> This repo is public, so it carries no real network addresses. The actual gateway IP lives in
+> the gitignored `scripts/secrets.local.json` and in the Home Assistant config entry. Use a
+> placeholder any time an address would otherwise be written down here.
 
 ## Hard constraints
 
