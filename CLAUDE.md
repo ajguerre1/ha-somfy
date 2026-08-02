@@ -30,8 +30,12 @@ probe, and build entity features from actual capability. **Never reintroduce a h
 - **Panel fan-out.** The live HA system drives ~48 wall panels that receive every state change.
   Write state only on actual change; poll only position-capable motors; keep the default
   interval at 60 s. A chatty coordinator is a regression, not a detail.
-- **Credentials never get committed.** Gateway user/password live in the HA config entry only.
-  Raw probe captures are gitignored; only sanitised fixtures are committed.
+- **Credentials never get committed.** Two distinct credential sets, neither ever in this repo:
+  *Somfy gateway* (`192.168.1.50`) user/password live in the HA config entry, mirrored for probe
+  scripts in the gitignored `scripts/secrets.local.json`; *Home Assistant* API/SSH access comes from
+  the **global store** `~/.ha/.env` (`. ~/.ha/load.sh`, then `ssh ha` / `$HA_URL` / `$HA_TOKEN`) —
+  see `~/.ha/README.md`. Never copy either into this repo. Raw probe captures are gitignored; only
+  sanitised fixtures are committed.
 - **No external runtime dependencies.** `manifest.json` keeps `requirements: []`; the client is
   vendored under `custom_components/ha_somfy/uai/`.
 
