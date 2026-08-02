@@ -29,3 +29,6 @@ venv/
 .mypy_cache/
 .coverage
 htmlcov/
+
+# Local-only working copies that legitimately contain real entity/room names.
+local/
