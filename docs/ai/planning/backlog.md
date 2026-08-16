@@ -116,7 +116,7 @@ it cannot be both useful and public. It lives in the gitignored `local/` directo
    Moving means *cutting*, not copying — a row must never exist in both places.
 4. **Delete** items that are no longer relevant, and note the deletion in the revision log.
 5. **Commit each revision** and push to `origin/main`.
-6. Items large enough to need design work graduate to the the lifecycle toolkit lifecycle
+6. Items large enough to need design work graduate to the phased lifecycle
    (`/new-requirement` → `docs/ai/<phase>/feature-<name>.md`) and link back to their ID here.
 
 ## Revision log

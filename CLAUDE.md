@@ -55,9 +55,9 @@ probe, and build entity features from actual capability. **Never reintroduce a h
 - **No external runtime dependencies.** `manifest.json` keeps `requirements: []`; the client is
   vendored under `custom_components/ha_somfy/uai/`.
 
-## Development lifecycle — use the lifecycle toolkit
+## Development lifecycle
 
-All work follows the **the lifecycle toolkit** lifecycle. Use `dev-lifecycle` to pick the phase, and drive each
+All work follows a phased lifecycle. Use `dev-lifecycle` to pick the phase, and drive each
 feature through its phase docs under `docs/ai/`:
 
 | Phase | File |
@@ -71,6 +71,10 @@ feature through its phase docs under `docs/ai/`:
 Start a feature with `/new-requirement`. Supporting commands: `/review-requirements`,
 `/review-design`, `/update-planning`, `/execute-plan`, `/writing-test`, `/check-implementation`,
 `/code-review`, `/remember`, `/debug`, `/capture-knowledge`.
+
+> Those command definitions are machine-local tooling and are deliberately not tracked here. The
+> phase docs under `docs/ai/` are the durable artefact; the commands are just one way to produce
+> them, and the lifecycle works the same if you write the docs by hand.
 
 ## Skills to use
 
@@ -92,12 +96,12 @@ complete only with real evidence.
 
 ## Memory
 
-Before non-trivial work, search: `lifecycle-toolkit memory search --query "<topic>" --scope project:ha-somfy`.
-Store durable knowledge with `/remember` or:
-`lifecycle-toolkit memory store --title "..." --content "..." --tags "..." --scope "project:ha-somfy"`.
-Shared SQLite DB at `~/.lifecycle-toolkit/memory.db`.
+Durable knowledge for this project lives in a shared memory store under the scope
+**`project:ha-somfy`**. Search it before non-trivial work, and record decisions worth keeping with
+`/remember`. The store and its exact CLI invocation are described in the machine-local instructions
+at `~/.claude/CLAUDE.md`, which is not part of this repository.
 
-> On Windows, run `memory store` via the **Bash** tool, not PowerShell — PowerShell mangles long
+> On Windows, write memory entries via the **Bash** tool, not PowerShell — PowerShell mangles long
 > `--content` arguments and produces a misleading "must be at least 50 characters" error.
 
 ## Testing

@@ -4,6 +4,13 @@ nimbalyst-local/
 # Claude Code local settings (machine-local permissions/overrides)
 .claude/settings.local.json
 
+# Machine-local agent tooling: scaffolding config and slash-command definitions.
+# These stay on disk so the local workflow keeps working, but they are not part of
+# the project — the durable artefacts are the phase docs under docs/ai/.
+# .claude/skills/ IS tracked: the somfy-sdn skill is this project's own findings.
+.ai-*.json
+.claude/commands/
+
 # Probe output / captured protocol transcripts may contain gateway credentials.
 # Sanitised fixtures live in tests/fixtures/ and ARE committed; raw captures are not.
 scripts/output/
