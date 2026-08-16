@@ -10,7 +10,7 @@ its position. That assumption breaks **Irismo** motors.
 
 Irismo has no SDN NodeType. It is a dry-contact drapery motor that joins the SDN bus only through
 Somfy's RS485 bridge module (P/N **1811129**), which supports open, close, stop and group
-addresses — **and nothing else**. There is no position feedback to read. Existing integrations
+addresses — **and nothing else**. No position comes back over the bus. Existing integrations
 nevertheless advertise `SET_POSITION` for every node, so Irismo blinds appear in Home Assistant
 with a dead position slider and a permanently unknown state.
 
@@ -62,13 +62,29 @@ host and telnet credentials. Motors and groups are discovered automatically.
   traffic you did not ask for.
 - **One device per motor**, showing its reported model, so Irismo units are identifiable at
   a glance.
+- **Open/closed state for Irismo**, if you supply the gateway's web password — see *Options*.
+  The SDN bus genuinely cannot report it, but the gateway's web interface exposes a position it
+  *models* from the last command it sent. So these entities are `assumed_state`: reliable for
+  open and closed, never a true mid-travel reading. A stopped Irismo lands at 50 %.
 - **Diagnostics** with credentials redacted, listing every node, its type, and the capability
   derived from it.
 
 ## Options
 
-*Poll interval* (default 60 s) controls how often position-capable motors are read. Motors
-without position feedback are never polled.
+*Settings → Devices & Services → Somfy SDN → Configure* offers three.
+
+**Poll interval** (default 60 s) — how often position-capable motors are read. Motors without
+position feedback are never polled.
+
+**Motor capability** — force a single motor to *reports position* or *no position feedback*.
+Normally unnecessary, since capability is read from the type the gateway reports; it exists for
+hardware this integration does not recognise. Changing it reloads the integration.
+
+**Web interface password** — the gateway's web page has its own password, **separate from the
+telnet one**. Supplying it is what lets the integration read open/closed state for motors with no
+position feedback, such as Irismo behind an SDN bridge. Leave the box empty to clear it and turn
+that off. Note the gateway allows only one web session at a time, so another browser logged into
+it will evict Home Assistant.
 
 ## Development
 
