@@ -3,11 +3,6 @@
 A Home Assistant integration for the **Somfy Connect UAI+** gateway, controlling Somfy SDN
 (RS-485) motorised blinds, shades and drapes.
 
-> **Status: pre-release.** Installable via HACS, but not yet validated against live hardware.
-> One known open question: position polarity is unconfirmed, so the open/closed direction may
-> be inverted until a motor is moved and observed. See
-> [`docs/ai/planning/backlog.md`](docs/ai/planning/backlog.md) (PROTO-08).
-
 ## Why this exists
 
 Three community integrations already target the UAI+, and all three assume every motor reports
