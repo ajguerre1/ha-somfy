@@ -1,5 +1,5 @@
 {
-  "name": "HA Somfy",
+  "name": "Somfy SDN",
   "homeassistant": "2024.11.0",
   "render_readme": true
 }

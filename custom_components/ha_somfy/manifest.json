@@ -1,6 +1,6 @@
 {
   "domain": "ha_somfy",
-  "name": "HA Somfy",
+  "name": "Somfy SDN",
   "codeowners": ["@ajguerre1"],
   "config_flow": true,
   "dependencies": [],
@@ -9,5 +9,5 @@
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/ajguerre1/ha-somfy/issues",
   "requirements": [],
-  "version": "0.4.2"
+  "version": "0.4.3"
 }

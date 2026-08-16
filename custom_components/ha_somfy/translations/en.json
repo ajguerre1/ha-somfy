@@ -33,7 +33,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "HA Somfy options",
+        "title": "Somfy SDN options",
         "menu_options": {
           "polling": "Polling",
           "capability": "Motor capability",

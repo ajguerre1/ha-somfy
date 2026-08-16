@@ -45,13 +45,13 @@ motor behind it. A classifier keyed on "irismo" matches none of them.
 ## Installation
 
 **HACS (recommended)** — HACS → ⋮ → *Custom repositories* → add
-`https://github.com/ajguerre1/ha-somfy` as an **Integration**, then install *HA Somfy* and
+`https://github.com/ajguerre1/ha-somfy` as an **Integration**, then install *Somfy SDN* and
 restart Home Assistant.
 
 **Manual** — copy `custom_components/ha_somfy/` into your Home Assistant `config/custom_components/`
 directory and restart.
 
-Then *Settings → Devices & Services → Add Integration → HA Somfy*, and enter the gateway's
+Then *Settings → Devices & Services → Add Integration → Somfy SDN*, and enter the gateway's
 host and telnet credentials. Motors and groups are discovered automatically.
 
 ## What you get
